@@ -114,16 +114,22 @@ mipOS is not affiliated with Canonical or Ubuntu. Ubuntu's trademark rules ask t
 modified versions use their own name and logos, which is why it's called mipOS.
 It uses no Apple names, logos or wallpapers.
 
-## Automatic builds (GitHub Actions)
+## Building on GitHub (GitHub Actions)
 
-Every push to `main` builds the ISO on GitHub's servers
+GitHub can build the ISO on its own servers
 ([.github/workflows/build-iso.yml](.github/workflows/build-iso.yml)).
+It only runs when you start it:
 
-- **Get the image:** GitHub → **Actions** tab → open the latest "Build ISO" run →
-  download **mipos-iso** at the bottom (kept 14 days). If a build fails, download
-  **build-log** from the same page.
-- **Build by hand:** Actions → "Build ISO" → **Run workflow**.
-- **Make a release:** push a version tag. The ISO is attached to a GitHub Release.
-  ```bash
-  git tag v0.1 && git push origin v0.1
-  ```
+1. On GitHub, open the **Actions** tab and pick **Build ISO** on the left.
+2. Click **Run workflow**.
+3. Under **Use workflow from**, choose the branch to build.
+4. Optional: tick **Publish a GitHub Release** and fill in a version like `v0.1`.
+5. Click the green **Run workflow** button.
+
+When it finishes, open the run and download **mipos-iso** at the bottom (kept
+14 days). If it fails, download **build-log** from the same page.
+
+From the terminal instead:
+```bash
+gh workflow run build-iso.yml --ref main
+```

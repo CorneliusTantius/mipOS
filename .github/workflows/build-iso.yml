@@ -1,12 +1,11 @@
 # Builds the mipOS disk image (.iso) on GitHub's servers.
 #
-# When it runs:
-#   - every push to main and every pull request that changes build files
-#   - by hand: Actions tab -> "Build ISO" -> "Run workflow"
-#   - when you push a version tag like v0.1 -> also publishes a GitHub Release
+# When it runs: only when you start it.
+#   Actions tab -> "Build ISO" -> "Run workflow" -> pick the branch under
+#   "Use workflow from" -> optionally tick "Publish a GitHub Release" -> Run.
 #
 # Where to get the image: open the finished run in the Actions tab and
-# download "mipos-iso" at the bottom (kept for 14 days), or from Releases for tags.
+# download "mipos-iso" at the bottom (kept for 14 days), or from Releases.
 #
 # Why Docker: the build must run on Ubuntu 26.04 (the same release we build),
 # and live-build needs full system rights (--privileged) to create the system.
@@ -14,13 +13,16 @@
 name: Build ISO
 
 on:
-  push:
-    branches: [main]
-    tags: ["v*"]
-    paths-ignore: ["**.md"]
-  pull_request:
-    paths-ignore: ["**.md"]
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish a GitHub Release with the ISO"
+        type: boolean
+        default: false
+      version:
+        description: "Release version tag (only used when publishing), e.g. v0.1"
+        type: string
+        default: ""
 
 # A newer push cancels an older build of the same branch.
 concurrency:
@@ -75,10 +77,13 @@ jobs:
           path: out/build-rootfs.log
           if-no-files-found: ignore
 
-      - name: Publish a Release (version tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish a Release (only if ticked)
+        if: inputs.release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
         run: |
-          gh release create "$GITHUB_REF_NAME" out/*.iso out/SHA256SUMS \
-            --title "mipOS $GITHUB_REF_NAME" --generate-notes
+          [ -n "$VERSION" ] || { echo "Fill in the version (e.g. v0.1) to publish a release."; exit 1; }
+          # Creates the tag on the exact commit that was built.
+          gh release create "$VERSION" out/*.iso out/SHA256SUMS \
+            --target "$GITHUB_SHA" --title "mipOS $VERSION" --generate-notes
