@@ -77,7 +77,7 @@ The build steps, in order (the workflow runs them for you):
 | | Goal | It works when... |
 |---|---|---|
 | L1 | Temporary system (chapters 4–7) | The GitHub job finishes and **l1-temp-system** is on the run page. |
-| L2 | Base system and kernel (chapters 8–10) | The ISO starts in the VM and shows `mipos login:`. |
+| L2 | Base system and lean kernel (chapters 8–10), size reductions | The ISO starts in the VM and shows `mipos login:`; its size is reported. |
 | L3 | Live ISO extras: Btrfs, LUKS, GRUB tools, iwd, dialog, TLP, zram | Wi-Fi or cable works on the live system. |
 | L4 | `mipos-install` | It installs to a VM disk and the installed system starts. |
 
@@ -90,6 +90,36 @@ file, GRUB on UEFI, lean kernel for Intel PCs and QEMU, zram, TLP, small logs,
 no docs or man pages.
 
 **Secure Boot must be off**: our GRUB and kernel aren't signed by Microsoft.
+
+## Keeping it small
+
+Settings in `mipos.conf`, applied from milestone L2 on. Rough targets: the
+finished system about 300–500 MB, the ISO about 150–250 MB (a plain LFS
+system after chapter 8 is around 1.5–2.5 GB). Real numbers get measured at L2.
+
+**Kernel** (a distro kernel with modules is 300–400 MB; ours aims for 10–20 MB):
+
+| Setting | What it does |
+|---|---|
+| No debug info (`DEBUG_INFO`, `DEBUG_INFO_BTF` off) | The biggest saving: modules shrink up to 10× |
+| Start from `make defconfig` | Only basic settings, not a distro's "everything" |
+| Drivers built in (`KERNEL_BUILTIN`) | Intel graphics and Wi-Fi, NVMe, USB, Btrfs, LUKS, QEMU: few or no module files |
+| Unused areas off (`KERNEL_DISABLE`) | AMD/NVIDIA graphics, old filesystems, NFS, staging drivers, 32-bit support… |
+| zstd compression, stripped modules | Smaller kernel file, fast to unpack |
+| Firmware per driver (`FIRMWARE_FOR`) | Only the files our drivers load, not whole firmware packages |
+
+Trade-off: the kernel only supports the hardware we chose (Intel PCs and QEMU).
+
+**System:**
+
+| Setting | What it does |
+|---|---|
+| `RUNTIME_ONLY` | Compilers, headers and static libraries stay in the build, not in the ISO. Everything is compiled on GitHub, so the finished system doesn't need them. Runtime libraries like `libstdc++` are kept. |
+| `STRIP_BINARIES` | LFS 8.85: remove debug data from every program and library |
+| `GLIBC_LOCALES` | One language (`en_US.UTF-8`) instead of hundreds (200+ MB) |
+| `STRIP_DOCS` | No docs, man or info pages, no translations |
+| Test-only packages | Tcl, Expect, DejaGNU are only for test suites: left out of the ISO |
+| zstd compression | ISO image (squashfs) and installed Btrfs |
 
 ## Updating to a new LFS book
 
