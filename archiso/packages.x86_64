@@ -32,8 +32,6 @@ thermald
 # --- A3: what mipos-install needs, and what the installed system keeps --
 # (The installer copies the live system to the disk, so everything the
 #  installed system needs must be on the ISO.)
-# Menus for the installer
-dialog
 # Copying the system, partitions, file systems, encryption
 rsync
 gptfdisk

@@ -129,7 +129,10 @@ attaches an empty 20 GB test disk (`out/vm/disk.qcow2`) for the installer.
 
 ## Installing: mipos-install
 
-On the live system, type `mipos-install`. It asks, in this order:
+On the live system, type `mipos-install`. Its screens are plain text with
+colors (no extra program needed): arrow keys and Enter to pick, typing to
+search the long lists (language, keyboard, timezone), Esc to quit. It asks, in
+this order:
 
 1. **Network**: cable connects by itself; otherwise pick a Wi-Fi network, or
    skip. Internet is only used to update the new system at the end.
@@ -205,7 +208,7 @@ Full test checklist (A2–A4): [TESTING.md](TESTING.md).
 - **Interface:** text only. **Init:** systemd.
 - **Network:** iwd (Wi-Fi) + systemd-networkd + systemd-resolved.
 - **Live ISO:** logs in as root automatically on the first screen.
-- **Installer:** `mipos-install` (bash + dialog): network, language and keyboard,
+- **Installer:** `mipos-install` (plain bash, colored text menus, type-to-search lists): network, language and keyboard,
   timezone, hostname, user with sudo (root locked), disk (whole disk or free
   space next to Windows), optional encryption, summary with typed
   confirmation. Unattended mode with `--config answers-file`.
