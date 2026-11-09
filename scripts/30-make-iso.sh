@@ -41,6 +41,7 @@ echo "$DISTRO_NAME $DISTRO_VERSION $ARCH ($(date +%Y-%m-%d))" > "$STAGE/.disk/in
 # 5. Boot menu, filled in with values from mipos.conf.
 sed -e "s|@DISTRO_NAME@|$DISTRO_NAME|g" \
     -e "s|@DISTRO_VERSION@|$DISTRO_VERSION|g" \
+    -e "s|@CMDLINE@|$KERNEL_CMDLINE_EXTRA|g" \
     "$PROJECT_DIR/iso/grub.cfg.in" > "$STAGE/boot/grub/grub.cfg"
 
 # 6. Build the image. grub-mkrescue adds GRUB and the UEFI boot area.

@@ -1,0 +1,84 @@
+# Builds the mipOS disk image (.iso) on GitHub's servers.
+#
+# When it runs:
+#   - every push to main and every pull request that changes build files
+#   - by hand: Actions tab -> "Build ISO" -> "Run workflow"
+#   - when you push a version tag like v0.1 -> also publishes a GitHub Release
+#
+# Where to get the image: open the finished run in the Actions tab and
+# download "mipos-iso" at the bottom (kept for 14 days), or from Releases for tags.
+#
+# Why Docker: the build must run on Ubuntu 26.04 (the same release we build),
+# and live-build needs full system rights (--privileged) to create the system.
+
+name: Build ISO
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths-ignore: ["**.md"]
+  pull_request:
+    paths-ignore: ["**.md"]
+  workflow_dispatch:
+
+# A newer push cancels an older build of the same branch.
+concurrency:
+  group: build-iso-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # needed only to publish Releases for tags
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Get the project files
+        uses: actions/checkout@v4
+
+      - name: Free disk space on the build server
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h /
+
+      - name: Build the ISO inside Ubuntu 26.04
+        run: |
+          docker run --rm --privileged \
+            -v "$PWD:/work" -w /work \
+            -e DEBIAN_FRONTEND=noninteractive \
+            ubuntu:26.04 \
+            bash -c "scripts/01-install-host-tools.sh --build-only && scripts/build-all.sh"
+
+      - name: Add a checksum file
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" out
+          cd out && sha256sum *.iso > SHA256SUMS && cat SHA256SUMS && ls -lh
+
+      - name: Upload the ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: mipos-iso
+          path: |
+            out/*.iso
+            out/SHA256SUMS
+          retention-days: 14
+          compression-level: 0   # the ISO is already compressed
+
+      - name: Upload the build log (also when the build fails)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: out/build-rootfs.log
+          if-no-files-found: ignore
+
+      - name: Publish a Release (version tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/*.iso out/SHA256SUMS \
+            --title "mipOS $GITHUB_REF_NAME" --generate-notes

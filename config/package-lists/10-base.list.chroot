@@ -1,6 +1,8 @@
 # M1: bare minimum system, like a fresh Arch install.
-# One package per line. The kernel (linux-generic) and casper are added
-# automatically by live-build, so they're not listed here.
+# One package per line.
+# The kernel, firmware, power and memory tools come from mipos.conf
+# (scripts/10-configure.sh writes them into 05-kernel-firmware.list.chroot).
+# casper (live disk startup) is added automatically by live-build.
 
 # Startup and system basics
 systemd-sysv
@@ -13,8 +15,7 @@ console-setup
 keyboard-configuration
 kbd
 
-# Hardware support: Intel Wi-Fi firmware and CPU fixes
-linux-firmware
+# CPU fixes for Intel processors
 intel-microcode
 
 # Networking (wired and Wi-Fi)

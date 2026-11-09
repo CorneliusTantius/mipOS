@@ -66,8 +66,8 @@ So `30-make-iso.sh` does it with GRUB's `grub-mkrescue`.
 | | Goal | It works when... |
 |---|---|---|
 | M1 | Bare live disk | The VM starts the image and shows a text login prompt. |
-| M2 | KDE Plasma on Wayland | The VM shows the SDDM login screen and the Plasma desktop opens. |
-| M3 | Canonical parts removed | Ubuntu Pro prompts and telemetry packages are gone, and the system says "mipOS". |
+| M2 | KDE Plasma on Wayland | The VM shows the tuigreet login screen and the Plasma desktop opens. |
+| M3 | Canonical parts removed | snap, Ubuntu Pro and telemetry packages are gone, and the system says "mipOS". |
 | M4 | Installer | Calamares installs to a Btrfs disk with subvolumes, and the installed system starts. |
 | M5 | Snapshots | snapper can create, list and roll back snapshots. |
 | M6 | Look and feel | The dark mipOS theme is applied and survives a rebuild. |
@@ -76,15 +76,54 @@ So `30-make-iso.sh` does it with GRUB's `grub-mkrescue`.
 
 All in `mipos.conf`. Changed from the original plan, by choice:
 
-- **snap is kept** (apps and Firefox via snap). M3 removes only Ubuntu Pro
-  prompts and telemetry, and does the rebrand.
+- **No snap.** Apps come from Flatpak/Flathub, Firefox from Mozilla's apt repo.
+  snap and the Ubuntu Pro, telemetry and crash-report packages are *blocked*
+  (apt will refuse to install them).
+- **Login screen: greetd + tuigreet** (a dark text login) instead of SDDM.
+- **KDE Plasma, trimmed:** kept for its automatic monitor handling, with file
+  indexing (Baloo), mail/calendar services (Akonadi), KDE Connect, Discover and
+  blur effects left out.
 - **GRUB is the bootloader** (Limine can't read Btrfs, and GRUB lets you boot
   into snapshots). Limine may be added later as an option.
 - **Theme is our own**, built on KDE's Breeze, with Papirus Dark icons, Inter
   font, graphite accent, and no dock.
+
+## Lightweight and battery settings
+
+Each one can be switched off in `mipos.conf`.
+
+| Setting | What it does | Why |
+|---|---|---|
+| Kernel only, no headers | `linux-image-generic` instead of `linux-generic` | Saves ~100 MB. Headers are only for compiling drivers. |
+| Small firmware set | Intel, Realtek, MediaTek, Qualcomm Wi-Fi, AMD graphics, Intel audio | ~250 MB instead of ~620 MB. |
+| No recommended extras | apt installs only what we list | Stops packages from dragging in optional extras. |
+| No docs, man pages, translations | dpkg skips these files | Saves disk space. Copyright files stay (required). |
+| No package indexes in the image | `/var/lib/apt/lists` emptied | Smaller image. Run `sudo apt update` before installing anything. |
+| zram | Compressed swap in RAM | Low-RAM PCs stay fast; no swap writes to the disk. |
+| dbus-broker | Lighter, faster D-Bus | Less CPU for messages between programs. |
+| TLP + thermald | CPU, Wi-Fi, USB and sound power saving; Intel heat control | Longer battery life. |
+| Small system log | Capped at 50 MB | Fewer disk writes. |
+| Masked timers | No twice-a-day update checks, no man-db and disk-check timers, no waiting for network at boot | Fewer wake-ups, faster boot. **Update by hand weekly:** `sudo apt update && sudo apt upgrade` |
+| Kernel options | `nowatchdog`, `zswap.enabled=0`, quiet boot | Fewer CPU wake-ups. |
+| Btrfs `noatime,compress=zstd:1` (M4) | No write on every file read; light compression | Fewer disk writes, smaller files. |
+| Initrd with only needed drivers (M4) | `MODULES=dep` on the installed system | Faster boot. |
 
 ## Legal
 
 mipOS is not affiliated with Canonical or Ubuntu. Ubuntu's trademark rules ask that
 modified versions use their own name and logos, which is why it's called mipOS.
 It uses no Apple names, logos or wallpapers.
+
+## Automatic builds (GitHub Actions)
+
+Every push to `main` builds the ISO on GitHub's servers
+([.github/workflows/build-iso.yml](.github/workflows/build-iso.yml)).
+
+- **Get the image:** GitHub → **Actions** tab → open the latest "Build ISO" run →
+  download **mipos-iso** at the bottom (kept 14 days). If a build fails, download
+  **build-log** from the same page.
+- **Build by hand:** Actions → "Build ISO" → **Run workflow**.
+- **Make a release:** push a version tag. The ISO is attached to a GitHub Release.
+  ```bash
+  git tag v0.1 && git push origin v0.1
+  ```
