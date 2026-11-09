@@ -63,6 +63,21 @@ if [ "$BROWSER" = "firefox-mozilla-apt" ]; then
 fi
 
 # --- Early hooks (run BEFORE the package lists are installed) --------
+# 0. The pins again. Ubuntu's live-build moves preferences.d aside while it
+#    sets up the package sources, so pins from chroot_apt/ are NOT active
+#    during the install. This hook puts them back before any package is chosen.
+{
+    echo '#!/bin/sh'
+    echo '# Generated: activate mipOS apt pins (blocked packages, Mozilla) for the build.'
+    echo 'set -e'
+    echo 'mkdir -p /etc/apt/preferences.d'
+    for f in "$CFG"/chroot_apt/*.pref; do
+        echo "cat > /etc/apt/preferences.d/$(basename "$f") <<'EOF'"
+        cat "$f"
+        echo 'EOF'
+    done
+} > "$CFG/hooks/0005-mipos-pins.chroot_early"
+
 # 1. dpkg strip rules: skip docs, man pages, translations.
 {
     echo '#!/bin/sh'

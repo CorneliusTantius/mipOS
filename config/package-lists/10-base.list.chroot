@@ -8,6 +8,7 @@
 systemd-sysv
 dbus
 initramfs-tools
+zstd
 sudo
 locales
 tzdata
