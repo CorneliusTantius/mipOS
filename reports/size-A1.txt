@@ -1,0 +1,45 @@
+mipOS size report
+Built:   2026-11-09 12:54 UTC
+ISO:     mipos-0.3-2026.11.09-x86_64.iso
+Commit:  7f68f92681f90e81d3cc9c4c2b87093ad4609b4a
+
+--- Totals (MiB) ---
+ISO file                                438
+Live system, compressed (sfs)           316
+Live system, unpacked                   704
+Packages installed                      142
+
+--- Big folders inside the live system (MiB) ---
+/usr/lib/modules                        169
+/usr/share/doc                           12
+/usr/share/man                           17
+/usr/share/info                           8
+/usr/share/locale                        97
+/usr/share/i18n                          16
+/usr/include                             32
+/usr/share/zoneinfo                       2
+/usr/share/kbd                            2
+/usr/lib/python3.14                       2
+/boot                                     0
+
+--- 20 biggest packages (installed size, MiB) ---
+   161.6  linux
+    50.7  glibc
+    43.8  binutils
+    43.2  icu
+    40.6  systemd
+    38.4  glib2
+    20.8  gettext
+    20.0  util-linux
+    17.7  coreutils
+    17.0  sqlite
+    12.3  openssl
+    10.5  file
+    10.4  gnupg
+    10.1  hwdata
+     9.6  bash
+     8.2  gnutls
+     7.1  pcre2
+     7.1  linux-api-headers
+     7.0  leancrypto
+     5.3  e2fsprogs

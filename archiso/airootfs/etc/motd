@@ -1,4 +1,6 @@
 
   Welcome to @DISTRO_NAME@ @DISTRO_VERSION@ (live system).
-  Wired network connects by itself. Power off: poweroff
+  Cable network connects by itself.
+  Wi-Fi:  iwctl station wlan0 connect "Network name"
+  Power off: poweroff
 

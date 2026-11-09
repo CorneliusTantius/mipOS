@@ -8,6 +8,17 @@ iso="$(ls "${ISO_DIR}"/*.iso 2>/dev/null | head -n1)" || true
 sfs="$(find "${WORK_DIR}/iso" -name airootfs.sfs | head -n1)"
 
 mib() { echo $(( ($1 + 1048575) / 1048576 )); }   # bytes -> MiB, rounded up
+# Compare with an earlier report (SIZE_BASELINE in mipos.conf), if there is one.
+baseline="${REPO_DIR}/${SIZE_BASELINE:-}"
+[[ -n "${SIZE_BASELINE:-}" && -f "${baseline}" ]] || baseline=""
+row() {   # row "label" value  -> label, value, and the change since the baseline
+    local old diff=""
+    if [[ -n "${baseline}" ]]; then
+        old="$(awk -v l="$1" 'substr($0,1,34)==sprintf("%-34s",l) {split(substr($0,36),a," "); print a[1]; exit}' "${baseline}" | grep -oE '^[0-9]+' || true)"
+        [[ -n "${old}" ]] && diff="$(printf '%8s %+8d' "${old}" "$(( $2 - old ))")"
+    fi
+    printf '%-34s %8s %s\n' "$1" "$2" "${diff}"
+}
 dir_mib() { if [[ -e "${root}$1" ]]; then mib "$(du -sb "${root}$1" | cut -f1)"; else echo 0; fi; }
 
 {
@@ -16,11 +27,15 @@ echo "Built:   $(date -u '+%Y-%m-%d %H:%M UTC')"
 echo "ISO:     $(basename "${iso}")"
 echo "Commit:  ${GITHUB_SHA:-$(git -C "${REPO_DIR}" rev-parse HEAD 2>/dev/null || echo unknown)}"
 echo
-echo "--- Totals (MiB) ---"
-printf '%-34s %8s\n' "ISO file"                         "$(mib "$(stat -c %s "${iso}")")"
-printf '%-34s %8s\n' "Live system, compressed (sfs)"    "$(mib "$(stat -c %s "${sfs}")")"
-printf '%-34s %8s\n' "Live system, unpacked"            "$(dir_mib /)"
-printf '%-34s %8s\n' "Packages installed"               "$(pacman --root "${root}" -Qq | wc -l)"
+if [[ -n "${baseline}" ]]; then
+    printf -- '--- Totals (MiB) ---%22s %8s %8s\n' now "${SIZE_BASELINE_NAME:-before}" change
+else
+    echo "--- Totals (MiB) ---"
+fi
+row "ISO file"                         "$(mib "$(stat -c %s "${iso}")")"
+row "Live system, compressed (sfs)"    "$(mib "$(stat -c %s "${sfs}")")"
+row "Live system, unpacked"            "$(dir_mib /)"
+row "Packages installed"               "$(pacman --root "${root}" -Qq | wc -l)"
 echo
 echo "--- Big folders inside the live system (MiB) ---"
 for d in /usr/lib/modules /usr/lib/firmware /usr/share/doc /usr/share/man \
@@ -28,7 +43,8 @@ for d in /usr/lib/modules /usr/lib/firmware /usr/share/doc /usr/share/man \
          /usr/share/zoneinfo /usr/share/kbd /usr/lib/python3* /boot; do
     for match in ${root}${d}; do
         rel="${match#"${root}"}"
-        [[ -e "${match}" ]] && printf '%-34s %8s\n' "${rel}" "$(dir_mib "${rel}")"
+        # Show trimmed-away folders as 0 (but skip patterns that matched nothing)
+        [[ -e "${match}" || "${rel}" != *"*"* ]] && row "${rel}" "$(dir_mib "${rel}")"
     done
 done
 echo

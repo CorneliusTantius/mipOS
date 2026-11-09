@@ -11,3 +11,20 @@ base
 mkinitcpio
 # Lets the initramfs find and start the live system on the ISO
 mkinitcpio-archiso
+
+# --- A2: hardware, Wi-Fi, battery and memory --------------------------
+# Firmware (small programs loaded into chips) for Intel graphics, Wi-Fi, Bluetooth
+linux-firmware-intel
+# Wi-Fi: iwd connects ("iwctl"), wireless-regdb holds each country's radio rules
+iwd
+wireless-regdb
+# zram: compressed swap in RAM
+zram-generator
+# Sound: firmware for Intel sound chips (SOF), their settings (UCM), and
+# alsamixer/speaker-test to set the volume and test speakers
+sof-firmware
+alsa-ucm-conf
+alsa-utils
+# Power saving (TLP) and Intel CPU temperature control (thermald)
+tlp
+thermald

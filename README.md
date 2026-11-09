@@ -31,6 +31,11 @@ history.
 | **GitHub Actions / workflow** | GitHub's servers running our build when you click "Run workflow". |
 | **artifact** | A file a workflow run produces for download (here: the ISO). |
 | **TTY** | The plain text screen (no windows, no mouse). |
+| **firmware** | Small programs loaded into a chip (Wi-Fi, graphics) when its driver starts. |
+| **kernel module / driver** | A piece of the kernel for one kind of hardware, loaded only when needed. |
+| **NoExtract** | A pacman setting: files that match are not unpacked when a package is installed. We use it to leave out docs, translations and unused drivers. |
+| **zram** | Swap space inside RAM, compressed. Lets a small RAM hold more without a slow disk. |
+| **TLP / thermald** | Battery saving settings / Intel CPU temperature control. |
 
 ## Folders
 
@@ -42,15 +47,18 @@ archiso/               The archiso profile (copied and filled in from mipos.conf
   pacman.conf            pacman settings used while building
   efiboot/               Boot menu of the ISO (systemd-boot)
   airootfs/              Files copied into the live system (/etc/..., /usr/...)
+    etc/pacman.d/mipos-noextract.conf   the size-trimming rules (NoExtract)
 scripts/               The build steps, numbered, run in order
   00-host-setup.sh       install archiso on the (Arch) build computer
   10-make-profile.sh     copy archiso/ to out/profile, fill in @NAMES@ from mipos.conf
   15-check-packages.sh   check every package exists in Arch's repos
   20-build-iso.sh        build the ISO with mkarchiso, write its checksum
+  25-check-modules.sh    check the needed drivers survived the trimming
   30-size-report.sh      write out/size-report.txt (what takes the space)
   build.sh               runs 00 -> 30 (what GitHub runs)
   get-iso.sh             download the newest ISO from GitHub and check it
   test-vm.sh             start the ISO in a QEMU/UEFI virtual machine
+reports/               Size reports kept for comparison (size-A1.txt = first build)
 .github/workflows/     The GitHub build (manual start only)
 out/                   Everything the build makes (not stored in git)
 ```
@@ -104,6 +112,35 @@ scripts/test-vm.sh
 checksum. `test-vm.sh` opens a VM window that boots it with UEFI. It also
 attaches an empty 20 GB test disk (`out/vm/disk.qcow2`) for the installer.
 
+## Using the live system
+
+- **Cable:** connects by itself.
+- **Wi-Fi:** type `iwctl`, then inside it:
+  `device list` (your Wi-Fi card, usually `wlan0`),
+  `station wlan0 scan`, `station wlan0 get-networks`,
+  `station wlan0 connect "Network name"` (asks for the password), `exit`.
+  Check with `ping -c 3 archlinux.org`.
+- **Sound:** `alsamixer` sets the volume (M = mute on/off, Esc = quit);
+  `speaker-test -c 2 -t wav -l 1` says "front left, front right".
+- **Power off:** `poweroff`.
+
+## Size trimming
+
+`archiso/airootfs/etc/pacman.d/mipos-noextract.conf` lists files pacman
+leaves out: documentation, man/info pages, translations, firmware for chips
+mipOS doesn't use (cameras, sound DSPs, server network cards) and kernel
+drivers for hardware it doesn't support (AMD/NVIDIA graphics, non-Intel
+Wi-Fi, most Ethernet cards except Intel and Realtek, webcams, rare file
+systems...). After each build, `scripts/25-check-modules.sh` checks that
+every driver in `MUST_HAVE_MODULES` (mipos.conf) is there and can load, and
+fails the build if not.
+
+To get something back, put `!` in front of its pattern (or delete the line)
+and rebuild. On an installed system, reinstall the package afterwards
+(`sudo pacman -S <package>`).
+
+The size report compares every build with `reports/size-A1.txt`.
+
 ## Milestones
 
 | | Goal | It works when... |
@@ -116,7 +153,7 @@ attaches an empty 20 GB test disk (`out/vm/disk.qcow2`) for the installer.
 ## Decisions (details in `mipos.conf`)
 
 - **Base:** Arch Linux, official repos only (AUR only if approved per package), x86_64, UEFI only.
-- **Kernel:** Arch's stock `linux`, unused drivers skipped with pacman `NoExtract` (A2).
+- **Kernel:** Arch's stock `linux`, unused drivers left out with pacman `NoExtract`.
 - **Interface:** text only. **Init:** systemd.
 - **Network:** iwd (Wi-Fi) + systemd-networkd + systemd-resolved.
 - **Live ISO:** logs in as root automatically on the first screen.
@@ -132,5 +169,6 @@ attaches an empty 20 GB test disk (`out/vm/disk.qcow2`) for the installer.
 - **Light:** zram (zstd, 50% of RAM), TLP + thermald, journal max 50 MB,
   short stop timeout, unneeded timers off, kernel options
   `quiet loglevel=3 nowatchdog zswap.enabled=0`.
-- **Size:** no docs/man pages/translations, only Intel firmware, unused
-  kernel modules left out. No developer tools (gcc, make, python) by default.
+- **Size:** no docs/man pages/translations, only Intel firmware
+  (`linux-firmware-intel`, `sof-firmware` for sound), unused kernel modules
+  left out. Sound works through ALSA (`alsamixer` for volume). No developer tools (gcc, make, python) by default.

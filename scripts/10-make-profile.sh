@@ -8,6 +8,10 @@ case "${SQUASHFS_COMPRESSION}" in
     *)    die "SQUASHFS_COMPRESSION must be zstd or xz (is: ${SQUASHFS_COMPRESSION})" ;;
 esac
 
+# NoExtract rules (size trimming) go into the build's pacman.conf.
+NOEXTRACT="$(grep '^NoExtract' "${REPO_DIR}/archiso/airootfs/etc/pacman.d/mipos-noextract.conf")"
+[[ "${STRIP_DOCS}" == "yes" ]] || NOEXTRACT=""
+
 say "Copying archiso/ to ${PROFILE_DIR}"
 rm -rf "${PROFILE_DIR}"
 mkdir -p "${OUT_DIR}"
@@ -16,7 +20,8 @@ find "${PROFILE_DIR}" -name .keep -delete
 
 say "Filling in values from mipos.conf"
 names=(DISTRO_NAME DISTRO_ID DISTRO_VERSION DISTRO_URL KERNEL LIVE_HOSTNAME
-       LIVE_KERNEL_PARAMS SQUASHFS_OPTIONS)
+       LIVE_KERNEL_PARAMS SQUASHFS_OPTIONS NOEXTRACT JOURNAL_MAX_SIZE
+       SERVICE_STOP_TIMEOUT ZRAM_SIZE_PERCENT ZRAM_COMPRESSION)
 while IFS= read -r -d '' file; do
     text="$(<"${file}")"
     for name in "${names[@]}"; do
