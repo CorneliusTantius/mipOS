@@ -8,6 +8,11 @@
 #   L2  final system + lean kernel, chapters 8-10, then the slim runtime
 #       image and a size report                  -> download "mipos-runtime"
 # The size report is also shown on the run's summary page.
+#
+# Reusing L1: the temporary system (incl. the cross-toolchain) only changes
+# when the book or a chapter 4-7 file changes. L1 saves its result in GitHub's
+# cache under a key made from those files; the next run with the same files
+# restores it and skips chapters 4-7. Turn on "Rebuild L1" to force a rebuild.
 
 name: Build LFS
 
@@ -16,6 +21,10 @@ on:
     inputs:
       run_tests:
         description: "Run each package's test suite (much slower)"
+        type: boolean
+        default: false
+      rebuild_l1:
+        description: "Rebuild L1 even if a saved one matches"
         type: boolean
         default: false
 
@@ -34,36 +43,64 @@ jobs:
       - name: Get the project files
         uses: actions/checkout@v4
 
+      # Key = every file that affects chapters 2-7, plus the test setting.
+      - name: Look for a saved L1 with the same inputs
+        id: l1cache
+        if: ${{ !inputs.rebuild_l1 }}
+        uses: actions/cache/restore@v4
+        with:
+          path: out/l1-temp-system.tar.zst
+          key: l1-v1-tests-${{ env.RUN_TESTS }}-${{ hashFiles('lfs/book/**', 'lfs/plan/ch5-*', 'lfs/plan/ch6-*', 'lfs/plan/ch7-*', 'lfs/overrides/ch4/**', 'lfs/overrides/ch5/**', 'lfs/overrides/ch6/**', 'lfs/overrides/ch7/**', 'lfs/tarballs.tsv', 'lfs/extra-sources.tsv', 'scripts/lib.sh', 'scripts/pkg.sh', 'scripts/run-plan.sh', 'scripts/as-lfs.sh', 'scripts/in-chroot.sh', 'scripts/mounts.sh', 'scripts/save-stage.sh', 'scripts/00-host-tools.sh', 'scripts/10-prepare.sh', 'scripts/20-cross-toolchain.sh', 'scripts/21-temp-tools.sh', 'scripts/30-chroot-tools.sh') }}
+      - name: Reusing the saved L1 (chapters 4-7 skipped)
+        if: steps.l1cache.outputs.cache-hit == 'true'
+        run: ls -lh out/l1-temp-system.tar.zst
+
       - name: Free disk space on the build server
+        if: steps.l1cache.outputs.cache-hit != 'true'
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h /
 
       # Source files only change with the book version, so keep them between runs.
       - name: Prepare the sources folder
+        if: steps.l1cache.outputs.cache-hit != 'true'
         run: sudo mkdir -p /mnt/lfs/sources && sudo chmod 1777 /mnt/lfs/sources
       - name: Reuse downloaded sources
+        if: steps.l1cache.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: /mnt/lfs/sources
-          key: lfs-sources-${{ hashFiles('lfs/book/md5sums') }}
+          key: lfs-sources-${{ hashFiles('lfs/book/md5sums', 'lfs/extra-sources.tsv') }}
 
       - name: Install build tools (chapter 2)
+        if: steps.l1cache.outputs.cache-hit != 'true'
         run: sudo scripts/00-host-tools.sh --change-bin-sh
       - name: Check the build computer (chapter 2.2)
+        if: steps.l1cache.outputs.cache-hit != 'true'
         run: scripts/01-host-check.sh
       - name: Download sources, create user and layout (chapters 3-4)
+        if: steps.l1cache.outputs.cache-hit != 'true'
         run: sudo -E scripts/10-prepare.sh
       - name: Cross-toolchain (chapter 5)
+        if: steps.l1cache.outputs.cache-hit != 'true'
         run: sudo -E scripts/20-cross-toolchain.sh
       - name: Temporary tools (chapter 6)
+        if: steps.l1cache.outputs.cache-hit != 'true'
         run: sudo -E scripts/21-temp-tools.sh
       - name: Chroot and last temporary tools (chapter 7)
+        if: steps.l1cache.outputs.cache-hit != 'true'
         run: sudo -E scripts/30-chroot-tools.sh
       - name: Save the temporary system
+        if: steps.l1cache.outputs.cache-hit != 'true'
         run: |
           sudo scripts/save-stage.sh l1-temp-system
           sudo chown -R "$(id -u):$(id -g)" out
+      - name: Keep it for the next runs
+        if: steps.l1cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: out/l1-temp-system.tar.zst
+          key: l1-v1-tests-${{ env.RUN_TESTS }}-${{ hashFiles('lfs/book/**', 'lfs/plan/ch5-*', 'lfs/plan/ch6-*', 'lfs/plan/ch7-*', 'lfs/overrides/ch4/**', 'lfs/overrides/ch5/**', 'lfs/overrides/ch6/**', 'lfs/overrides/ch7/**', 'lfs/tarballs.tsv', 'lfs/extra-sources.tsv', 'scripts/lib.sh', 'scripts/pkg.sh', 'scripts/run-plan.sh', 'scripts/as-lfs.sh', 'scripts/in-chroot.sh', 'scripts/mounts.sh', 'scripts/save-stage.sh', 'scripts/00-host-tools.sh', 'scripts/10-prepare.sh', 'scripts/20-cross-toolchain.sh', 'scripts/21-temp-tools.sh', 'scripts/30-chroot-tools.sh') }}
 
       - name: Upload the temporary system
         uses: actions/upload-artifact@v4
