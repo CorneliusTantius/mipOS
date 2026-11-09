@@ -68,7 +68,7 @@ So `30-make-iso.sh` does it with GRUB's `grub-mkrescue`.
 | M1 | Bare live disk | The VM starts the image and shows a text login prompt. |
 | M2 | KDE Plasma on Wayland | The VM shows the tuigreet login screen and the Plasma desktop opens. |
 | M3 | Canonical parts removed | snap, Ubuntu Pro and telemetry packages are gone, and the system says "mipOS". |
-| M4 | Installer | Calamares installs to a Btrfs disk with subvolumes, and the installed system starts. |
+| M4 | Installer | The mipOS text installer installs to a Btrfs disk with subvolumes (whole disk or next to Windows, optional encryption), and the installed system starts. |
 | M5 | Snapshots | snapper can create, list and roll back snapshots. |
 | M6 | Look and feel | The dark mipOS theme is applied and survives a rebuild. |
 
@@ -83,6 +83,10 @@ All in `mipos.conf`. Changed from the original plan, by choice:
 - **KDE Plasma, trimmed:** kept for its automatic monitor handling, with file
   indexing (Baloo), mail/calendar services (Akonadi), KDE Connect, Discover and
   blur effects left out.
+- **Installer: our own text installer** (`mipos-install`, bash + gum menus,
+  like Omarchy's) instead of Calamares. It can erase a whole disk or use free
+  space next to Windows, asks whether to encrypt the disk (LUKS2), and sets up
+  a swap file for hibernation. Hibernation only works with Secure Boot off.
 - **GRUB is the bootloader** (Limine can't read Btrfs, and GRUB lets you boot
   into snapshots). Limine may be added later as an option.
 - **Theme is our own**, built on KDE's Breeze, with Papirus Dark icons, Inter
