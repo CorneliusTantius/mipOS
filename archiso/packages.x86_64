@@ -1,0 +1,13 @@
+# Packages on the live ISO, one per line. Lines starting with # are notes
+# (keep notes on their own line). @KERNEL@ is replaced with KERNEL from
+# mipos.conf by scripts/10-make-profile.sh.
+
+# --- A1: the smallest system that boots -------------------------------
+# Arch's minimal set: systemd, bash, coreutils, pacman...
+base
+# The Linux kernel
+@KERNEL@
+# Builds the initramfs (the small start-up system loaded with the kernel)
+mkinitcpio
+# Lets the initramfs find and start the live system on the ISO
+mkinitcpio-archiso

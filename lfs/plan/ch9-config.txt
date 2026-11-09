@@ -1,4 +1,0 @@
-# Chapter 9: system configuration. The book's sections are mostly
-# fill-in-the-blank, so one mipOS step writes them from mipos.conf.
-ch9/09000-mipos-config.sh	# mipOS: network, hostname, console, locale, systemd, zram, release files
-ch9/09080-inputrc.sh	# 9.8 /etc/inputrc (keyboard behaviour in bash)

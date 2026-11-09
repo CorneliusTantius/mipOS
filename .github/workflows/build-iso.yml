@@ -1,0 +1,82 @@
+# Builds the mipOS live ISO on GitHub's servers with archiso.
+#
+# Only runs when you start it: Actions tab -> "Build ISO" -> "Run workflow"
+# -> pick the branch under "Use workflow from" -> Run workflow.
+# From the terminal: gh workflow run build-iso.yml --ref main
+#
+# GitHub's servers run Ubuntu, but archiso needs Arch Linux, so the job runs
+# inside an Arch Linux container (a small Arch system started just for the job).
+#
+# Result (Summary page of the run): the size report, and a download called
+# "mipos-iso" with the ISO, its checksum and the size report (kept 14 days).
+#
+# Reuse between runs: downloaded packages are kept in GitHub's cache, so the
+# next build only downloads packages that changed. A fresh cache starts each week.
+
+name: Build ISO
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-iso-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  iso:
+    name: Build the live ISO
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    container:
+      image: archlinux:latest
+      options: --privileged
+    steps:
+      - name: Update the Arch container, add git and zstd
+        run: pacman -Syu --noconfirm --needed git zstd
+
+      - name: Get the project files
+        uses: actions/checkout@v4
+
+      - name: Week number (for the package cache name)
+        id: week
+        run: echo "week=$(date -u +%G-w%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Reuse downloaded packages
+        id: pkgcache
+        uses: actions/cache/restore@v4
+        with:
+          path: /var/cache/pacman/pkg
+          key: pacman-pkg-${{ steps.week.outputs.week }}
+          restore-keys: pacman-pkg-
+
+      - name: Build (scripts/build.sh)
+        run: scripts/build.sh
+
+      - name: Show the size report on the summary page
+        run: |
+          { echo '## mipOS size report'; echo '```'; cat out/size-report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: mipos-iso
+          path: |
+            out/iso/*.iso
+            out/iso/*.sha256
+            out/size-report.txt
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Keep only the newest version of each package in the cache
+        if: steps.pkgcache.outputs.cache-hit != 'true'
+        run: paccache -rk1 -c /var/cache/pacman/pkg && du -sh /var/cache/pacman/pkg
+      - name: Save downloaded packages for the next runs
+        if: steps.pkgcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /var/cache/pacman/pkg
+          key: pacman-pkg-${{ steps.week.outputs.week }}

@@ -1,27 +1,22 @@
-# Shared helpers for the mipOS build scripts.
-# Each script starts with:  source "$(dirname "$0")/lib.sh"
-
+#!/usr/bin/env bash
+# Shared helpers for the numbered build scripts. Not run on its own.
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$PROJECT_DIR"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT_DIR="${REPO_DIR}/out"
+PROFILE_DIR="${OUT_DIR}/profile"     # filled-in copy of archiso/
+WORK_DIR="${OUT_DIR}/work"           # mkarchiso's scratch folder
+ISO_DIR="${OUT_DIR}/iso"             # finished ISO + checksum
+
 # shellcheck source=../mipos.conf
-source "$PROJECT_DIR/mipos.conf"
+source "${REPO_DIR}/mipos.conf"
 
-BOOK="$PROJECT_DIR/lfs/book"
-OVERRIDES="$PROJECT_DIR/lfs/overrides"
-OUT="$PROJECT_DIR/out"
-DONE_DIR="$LFS/.mipos-done"     # one marker file per finished step (lets a build resume)
+say()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+warn() { printf '\033[1;33mWARNING: %s\033[0m\n' "$*" >&2; }
+die()  { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
-info() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
-ok()   { printf '\033[1;32m OK\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m !!\033[0m %s\n' "$*"; }
-die()  { printf '\033[1;31mERROR\033[0m %s\n' "$*" >&2; exit 1; }
+need_root() { [[ ${EUID} -eq 0 ]] || die "Run this as root (sudo $0)."; }
+need_arch() { [[ -f /etc/arch-release ]] || die "This step must run on Arch Linux (the GitHub build uses an Arch container)."; }
 
-need_root() { [ "$(id -u)" -eq 0 ] || die "Run with sudo: sudo $0"; }
-
-# Book scripts of one chapter that contain a package (column 5 of index.tsv),
-# in book order. Prints: script package version
-chapter_packages() {
-    awk -F'\t' -v c="$1" 'NR>1 && $1==c && $5!="" {print $4, $5, $6}' "$BOOK/index.tsv"
-}
+# Package names from a package list file: drop notes and empty lines.
+read_package_list() { sed -e 's/#.*//' -e 's/[[:space:]]//g' -e '/^$/d' "$1"; }

@@ -1,3 +1,0 @@
-# Chapter 10: making the system bootable.
-# 10.2 fstab is written by mipos-install; 10.4 GRUB is set up for the ISO / by the installer.
-ch10/10030-kernel.sh	# 10.3 Linux kernel (lean mipOS settings)

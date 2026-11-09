@@ -1,155 +1,136 @@
 # mipOS
 
-mipOS is a personal Linux system built **from source** by following
-[Linux From Scratch](https://www.linuxfromscratch.org/) (LFS), version
-**13.1-systemd**. Every program is compiled from its source code. Each step of
-the book is a script in this repo, so a rebuild repeats exactly.
+mipOS is a personal, light, battery-friendly Linux system based on
+[Arch Linux](https://archlinux.org). It is text-only (no desktop), uses
+systemd, and comes as a **live ISO** with its own small text installer,
+`mipos-install`. The ISO is built on GitHub with **archiso**, Arch's official
+ISO builder, from the files in this repo, so every rebuild is the same.
 
-It's a learning project: text-only (no desktop), systemd, a live ISO with a
-small text installer. There is no package manager, so updates mean
-recompiling (the scripts make that repeatable).
+Earlier versions (Ubuntu-based, then Linux From Scratch) are in the git
+history.
 
 ## Words used in this project
 
 | Word | Meaning |
 |---|---|
-| **LFS** | Linux From Scratch: a book that explains how to build a Linux system from source code, step by step. |
-| **source code / tarball** | A program's code, downloaded as a compressed file (`.tar.xz`). |
-| **compile** | Turn source code into a program the computer can run. |
-| **toolchain** | The compiler (GCC), linker (Binutils) and C library (Glibc): the tools that build everything else. |
-| **cross-toolchain** | A toolchain that runs on the build computer but makes programs for the new system (LFS chapter 5). |
-| **chroot** | Run programs with a folder (here `/mnt/lfs`) as their root `/`, so they only see the new system. |
-| **host** | The computer doing the building (here: GitHub's Ubuntu servers). |
-| **init system** | The first program the kernel starts. We use **systemd**. |
-| **bootloader** | The program that starts the operating system. We use **GRUB** (UEFI). |
-| **stage** | A saved copy of the half-built system, so the next step can continue from it. |
+| **distribution (distro)** | A complete Linux system: kernel + programs + settings, ready to install. |
+| **Arch Linux** | The distro mipOS is built on. Small, up to date ("rolling": updates arrive continuously). |
+| **package** | One program (or part of one) ready to install, e.g. `iwd`. |
+| **pacman** | Arch's package manager: installs, updates and removes packages (`pacman -S iwd`). |
+| **repo (package repository)** | Arch's servers holding the official packages (`core`, `extra`). |
+| **AUR** | Arch User Repository: community build recipes, not official. Only used if approved per package. |
+| **kernel** | The core program that talks to the hardware. We use Arch's stock `linux`. |
+| **initramfs** | A small start-up system loaded with the kernel; it finds the real system and starts it. |
+| **ISO** | A file holding a whole bootable disc image. Put on a USB stick or start it in a VM. |
+| **live system** | A system that runs straight from the ISO, in memory, without installing. |
+| **archiso / mkarchiso** | Arch's tool that turns a *profile* (a folder of settings) into an ISO. |
+| **profile** | The `archiso/` folder: package list, files to add, boot menu. |
+| **squashfs** | The compressed file inside the ISO that holds the live system. |
+| **UEFI** | The modern firmware that starts a PC (replaces old "BIOS"). mipOS is UEFI-only. |
+| **VM (virtual machine)** | A pretend computer inside your computer. We use **QEMU**; **OVMF** is its UEFI firmware; **KVM** makes it fast. |
+| **GitHub Actions / workflow** | GitHub's servers running our build when you click "Run workflow". |
+| **artifact** | A file a workflow run produces for download (here: the ISO). |
+| **TTY** | The plain text screen (no windows, no mouse). |
 
 ## Folders
 
 ```
-mipos.conf          All decisions in one file.
-lfs/book/           The book's commands, one script per section (generated, don't edit)
-  index.tsv           every section, with its package and version
-  wget-list, md5sums  the source files and their checksums
-  LICENSE             the book's commands are extracted under the MIT License
-lfs/overrides/      Our changes to book steps (same file name as in lfs/book/)
-lfs/plan/           Which steps run, in which order, per chapter
-scripts/            The build steps (numbered) and helpers
-tools/extract-book.py  Turns the LFS book (HTML) into lfs/book/
-.github/workflows/  The GitHub build
+mipos.conf             All decisions in one file. The scripts read it.
+archiso/               The archiso profile (copied and filled in from mipos.conf)
+  profiledef.sh          ISO name, boot method (UEFI), compression
+  packages.x86_64        Packages on the live ISO
+  pacman.conf            pacman settings used while building
+  efiboot/               Boot menu of the ISO (systemd-boot)
+  airootfs/              Files copied into the live system (/etc/..., /usr/...)
+scripts/               The build steps, numbered, run in order
+  00-host-setup.sh       install archiso on the (Arch) build computer
+  10-make-profile.sh     copy archiso/ to out/profile, fill in @NAMES@ from mipos.conf
+  15-check-packages.sh   check every package exists in Arch's repos
+  20-build-iso.sh        build the ISO with mkarchiso, write its checksum
+  30-size-report.sh      write out/size-report.txt (what takes the space)
+  build.sh               runs 00 -> 30 (what GitHub runs)
+  get-iso.sh             download the newest ISO from GitHub and check it
+  test-vm.sh             start the ISO in a QEMU/UEFI virtual machine
+.github/workflows/     The GitHub build (manual start only)
+out/                   Everything the build makes (not stored in git)
 ```
-
-## How a step runs
-
-`scripts/pkg.sh ch5/05020-binutils-pass1.sh` does what the book's "general
-instructions" say: unpack the package's tarball, go into its folder, run the
-book's commands, delete the folder. If `lfs/overrides/` has a file with the
-same name, that file is used instead. A marker in `/mnt/lfs/.mipos-done/`
-records finished steps, so a rerun continues where it stopped. Each step's
-full output goes to `/mnt/lfs/.mipos-logs/<step>.log`.
-
-Test suites (`make check` and similar) only run when `RUN_TESTS=yes`; then
-Tcl, Expect and DejaGNU (needed only for tests) are skipped too.
-
-Small changes to a book step go in `lfs/overrides/<step>.sed` (sed edits on
-top of the book's commands), for example removing `passwd root` from Shadow
-or building only our locales in Glibc. `lfs/tarballs.tsv` names the source
-file when a package's tarball name differs from its book title.
-
-From chapter 8 on, every step records the files it installed
-(`/mnt/lfs/.mipos-files/<step>.list`). Step 50 uses these lists to leave
-build-only packages out of the runtime image (LFS has no package manager, so
-this is how we know which files belong to which package).
 
 ## Building (on GitHub)
 
-1. On GitHub, open **Actions** → **Build LFS** → **Run workflow**.
-2. Under **Use workflow from**, pick the branch. Leave "Run tests" off.
-3. Click **Run workflow**. Two jobs run one after the other: L1 (about 1–2
-   hours) and L2 (about 3–4 hours).
-4. When it finishes, the run page shows the **size report** and has:
-   - **mipos-runtime**: the slim system (`mipos-rootfs.squashfs`), the kernel
-     (`vmlinuz`), its settings and the size report (kept 14 days)
-   - **l1-temp-system**, **l2-full-system**: saved stages, so later milestones
-     can continue without rebuilding (kept 7 days)
-   - **l1-logs**, **l2-logs**: one log per package, plus the list of files
-     each package installed
+The build runs only when you start it:
 
-From the terminal: `gh workflow run build-lfs.yml --ref main`
+1. On GitHub, open **Actions** → **Build ISO** → **Run workflow**.
+2. Under **Use workflow from**, pick the branch.
+3. Click **Run workflow**. It takes about 10–20 minutes.
+4. Open the finished run. Its **Summary** page shows the size report and
+   has the download **mipos-iso** (ISO + checksum + size report, kept 14 days).
 
-The build steps, in order (the workflow runs them for you):
+From the terminal (needs the GitHub CLI `gh`):
 
-| Step | Script | LFS chapter |
-|---|---|---|
-| 00 | `sudo scripts/00-host-tools.sh --change-bin-sh` | 2: build tools; points `/bin/sh` to bash (the book needs it) |
-| 01 | `scripts/01-host-check.sh` | 2.2: the book's version check |
-| 10 | `sudo scripts/10-prepare.sh` | 3–4: download and check sources, folder layout, `lfs` user |
-| 20 | `sudo scripts/20-cross-toolchain.sh` | 5: cross-toolchain (as user `lfs`) |
-| 21 | `sudo scripts/21-temp-tools.sh` | 6: temporary tools (as user `lfs`) |
-| 30 | `sudo scripts/30-chroot-tools.sh` | 7: enter the chroot, last temporary tools, clean up |
-| — | `sudo scripts/save-stage.sh l1-temp-system` | 7.15: save the temporary system |
-| 40 | `sudo scripts/40-system.sh` | 8–10: final system (~80 packages), configuration, lean kernel |
-| 50 | `sudo scripts/50-runtime-image.sh` | mipOS: slim runtime image, firmware, size report |
+```bash
+gh workflow run build-iso.yml --ref main
+```
+
+GitHub's servers run Ubuntu, so the build runs inside an **Arch Linux
+container** (a small Arch system started only for the build). Downloaded
+packages are kept in GitHub's cache, so the next build only downloads what
+changed.
+
+On an Arch Linux computer you can build locally: `sudo scripts/build.sh`.
+
+## Testing in a virtual machine (on your computer)
+
+One-time setup (Ubuntu):
+
+```bash
+sudo apt install qemu-system-x86 ovmf qemu-utils gh
+```
+
+```bash
+sudo usermod -aG kvm $USER
+```
+
+Then log out and back in (so the `kvm` group applies). Then for each build:
+
+```bash
+scripts/get-iso.sh
+```
+
+```bash
+scripts/test-vm.sh
+```
+
+`get-iso.sh` downloads the newest ISO into `out/download/` and checks its
+checksum. `test-vm.sh` opens a VM window that boots it with UEFI. It also
+attaches an empty 20 GB test disk (`out/vm/disk.qcow2`) for the installer.
 
 ## Milestones
 
 | | Goal | It works when... |
 |---|---|---|
-| L1 | Temporary system (chapters 4–7) | The GitHub job finishes and **l1-temp-system** is on the run page. |
-| L2 | Base system and lean kernel (chapters 8–10), slim runtime image | The GitHub run finishes and shows the size report; **mipos-runtime** is on the run page. |
-| L3 | Bootable live ISO, plus Btrfs, LUKS, GRUB tools, iwd, dialog, TLP | The ISO starts in the VM and shows `mipos login:`; Wi-Fi or cable works. |
-| L4 | `mipos-install` | It installs to a VM disk and the installed system starts. |
+| **A1** | Minimal ISO built on GitHub | The VM boots to `mipos login: root (automatic login)` and a `root@mipos` prompt; the size report is shown. |
+| **A2** | Lightweight tuning + size trimming | Wi-Fi and cable work on the live system; size report compared with A1. |
+| **A3** | `mipos-install` (erase whole disk, with and without encryption) | The installed system boots and you can log in. |
+| **A4** | Dual boot (free space next to Windows) + hibernation | Both tested in a VM. |
 
-## Decisions
+## Decisions (details in `mipos.conf`)
 
-All in `mipos.conf`: LFS 13.1-systemd, text only, iwd + systemd-networkd,
-installer in bash with `dialog` menus, Btrfs with subvolumes (no snapshots),
-optional LUKS2, whole disk or free space next to Windows, hibernation swap
-file, GRUB on UEFI, lean kernel for Intel PCs and QEMU, zram, TLP, small logs,
-no docs or man pages.
-
-**Secure Boot must be off**: our GRUB and kernel aren't signed by Microsoft.
-
-## Keeping it small
-
-Settings in `mipos.conf`, applied from milestone L2 on. Rough targets: the
-finished system about 300–500 MB, the ISO about 150–250 MB (a plain LFS
-system after chapter 8 is around 1.5–2.5 GB). Real numbers get measured at L2.
-
-**Kernel** (a distro kernel with modules is 300–400 MB; ours aims for 10–20 MB):
-
-| Setting | What it does |
-|---|---|
-| No debug info (`DEBUG_INFO`, `DEBUG_INFO_BTF` off) | The biggest saving: modules shrink up to 10× |
-| Start from `make defconfig` | Only basic settings, not a distro's "everything" |
-| Drivers built in (`KERNEL_BUILTIN`) | Intel graphics and Wi-Fi, NVMe, USB, Btrfs, LUKS, QEMU: few or no module files |
-| Unused areas off (`KERNEL_DISABLE`) | AMD/NVIDIA graphics, old filesystems, NFS, staging drivers, 32-bit support… |
-| zstd compression, stripped modules | Smaller kernel file, fast to unpack |
-| Firmware per driver (`FIRMWARE_FOR`) | Only the files our drivers load, not whole firmware packages |
-
-Trade-off: the kernel only supports the hardware we chose (Intel PCs and QEMU).
-
-**System:**
-
-| Setting | What it does |
-|---|---|
-| `RUNTIME_ONLY` | Compilers, headers and static libraries stay in the build, not in the ISO. Everything is compiled on GitHub, so the finished system doesn't need them. Runtime libraries like `libstdc++` are kept. |
-| `STRIP_BINARIES` | LFS 8.85: remove debug data from every program and library |
-| `GLIBC_LOCALES` | One language (`en_US.UTF-8`) instead of hundreds (200+ MB) |
-| `STRIP_DOCS` | No docs, man or info pages, no translations |
-| Test-only packages | Tcl, Expect, DejaGNU are only for test suites: left out of the ISO |
-| zstd compression | ISO image (squashfs) and installed Btrfs |
-
-## Updating to a new LFS book
-
-1. Download the new `LFS-BOOK-<version>-NOCHUNKS.html`, `wget-list` and
-   `md5sums` from the LFS site.
-2. `python3 tools/extract-book.py LFS-BOOK-<version>-NOCHUNKS.html lfs/book`
-3. Copy `wget-list` and `md5sums` into `lfs/book/`, update `LFS_VERSION` and
-   `LFS_MIRROR` in `mipos.conf`, and check `lfs/overrides/` still fits.
-
-## Legal
-
-The commands in `lfs/book/` come from the LFS book (© Gerard Beekmans), whose
-computer instructions may be extracted under the MIT License (see
-`lfs/book/LICENSE`).
+- **Base:** Arch Linux, official repos only (AUR only if approved per package), x86_64, UEFI only.
+- **Kernel:** Arch's stock `linux`, unused drivers skipped with pacman `NoExtract` (A2).
+- **Interface:** text only. **Init:** systemd.
+- **Network:** iwd (Wi-Fi) + systemd-networkd + systemd-resolved.
+- **Live ISO:** logs in as root automatically on the first screen.
+- **Installer:** `mipos-install` (bash + dialog): network, language and keyboard,
+  timezone, hostname, user with sudo (root locked), disk (whole disk or free
+  space next to Windows), optional encryption, summary with typed
+  confirmation. Unattended mode with `--config answers-file`.
+- **Disk:** 1 GB EFI partition mounted at `/boot` (holds the kernel, not
+  encrypted), Btrfs with subvolumes `@ @home @var_log @var_cache @swap`,
+  `noatime,compress=zstd:1`, no snapshots; hibernation swap file (size of RAM).
+  Optional LUKS2 encryption (argon2id) of everything except `/boot`.
+  Bootloader: GRUB (Secure Boot off).
+- **Light:** zram (zstd, 50% of RAM), TLP + thermald, journal max 50 MB,
+  short stop timeout, unneeded timers off, kernel options
+  `quiet loglevel=3 nowatchdog zswap.enabled=0`.
+- **Size:** no docs/man pages/translations, only Intel firmware, unused
+  kernel modules left out. No developer tools (gcc, make, python) by default.
