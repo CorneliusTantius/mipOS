@@ -19,4 +19,5 @@ kernel_params_x86_64="@LIVE_KERNEL_PARAMS@"
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/root"]="0:0:750"
+  ["/usr/local/bin/mipos-install"]="0:0:755"
 )

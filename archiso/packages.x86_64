@@ -28,3 +28,26 @@ alsa-utils
 # Power saving (TLP) and Intel CPU temperature control (thermald)
 tlp
 thermald
+
+# --- A3: what mipos-install needs, and what the installed system keeps --
+# (The installer copies the live system to the disk, so everything the
+#  installed system needs must be on the ISO.)
+# Menus for the installer
+dialog
+# Copying the system, partitions, file systems, encryption
+rsync
+gptfdisk
+dosfstools
+btrfs-progs
+cryptsetup
+arch-install-scripts
+# Boot loader (UEFI) and finding Windows for the boot menu
+grub
+efibootmgr
+os-prober
+# Intel CPU fixes, loaded at start
+intel-ucode
+# Admin rights for your user, a text editor, a pager
+sudo
+nano
+less

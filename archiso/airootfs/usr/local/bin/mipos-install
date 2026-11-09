@@ -1,0 +1,858 @@
+#!/usr/bin/env bash
+# =====================================================================
+#  mipos-install: the mipOS text installer (runs on the live ISO)
+#
+#  Usage:
+#    mipos-install                      ask everything with menus
+#    mipos-install --config FILE        unattended: answers from FILE
+#                                       (example: /usr/share/mipos/answers.example)
+#    mipos-install --dry-run            ask everything, show the summary,
+#                                       change nothing
+#
+#  Steps: network, language and keyboard, timezone, computer name, user,
+#  disk, encryption, summary (type "yes"), install. Nothing on any disk
+#  changes before you confirm the summary.
+#
+#  How it installs: it copies the live system (the files you are running
+#  right now) to the disk, then turns it into an installed system: users,
+#  boot loader, encryption, hibernation, removing live-only settings.
+#  So it works without internet; with internet it can update afterwards.
+# =====================================================================
+set -Eeuo pipefail
+
+CONF=${MIPOS_CONF:-/usr/share/mipos/mipos.conf}
+# shellcheck source=/dev/null
+source "${CONF}"
+
+LOG=/var/log/mipos-install.log
+TARGET=/mnt/mipos                 # where the new system is mounted
+LIVE_ROOT=/run/archiso/airootfs   # the untouched live system image
+CRYPT_NAME=cryptroot
+MIN_ROOT_GB=12                    # space for the system itself (besides swap)
+EFI_TYPE=ef00                     # sgdisk code: EFI system partition
+ROOT_TYPE=8304                    # sgdisk code: Linux x86-64 root
+ESP_OPTS="fmask=0137,dmask=0027"  # EFI partition: only root may change it
+BACKTITLE="${DISTRO_NAME} ${DISTRO_VERSION} installer"
+UNATTENDED=no
+DRY_RUN=no
+STEP_TOTAL=8
+
+declare -A ANS=()                 # answers (from menus or the --config file)
+
+# ---------------------------------------------------------------------
+# Small helpers
+# ---------------------------------------------------------------------
+log()  { printf '[%s] %s\n' "$(date +%T)" "$*" >>"${LOG}"; }
+run()  { log "+ $*"; "$@" >>"${LOG}" 2>&1; }      # run a command, output to the log
+
+die() {
+    log "ERROR: $*"
+    if [[ ${UNATTENDED} == no && -t 1 ]]; then
+        dialog --backtitle "${BACKTITLE}" --title "Installation stopped" \
+            --msgbox "$*\n\nThe last lines of the log (${LOG}) follow on the next screen." 0 0 || true
+        tail -n 40 "${LOG}" >/tmp/mipos-install-tail.txt
+        dialog --backtitle "${BACKTITLE}" --title "${LOG} (last lines)" \
+            --textbox /tmp/mipos-install-tail.txt 0 0 || true
+        clear
+    fi
+    echo "ERROR: $*" >&2
+    echo "Full log: ${LOG}" >&2
+    exit 1
+}
+
+# Show a menu/input box. Prints the answer. Cancel/Esc asks whether to quit.
+ui() {
+    local out rc
+    while true; do
+        set +e
+        out="$(dialog --backtitle "${BACKTITLE}" --stdout "$@")"
+        rc=$?
+        set -e
+        case ${rc} in
+            0) printf '%s' "${out}"; return 0 ;;
+            1|255)
+                if dialog --backtitle "${BACKTITLE}" --defaultno --yesno \
+                    "Quit the installer?\n\nNothing has been changed on your disks." 8 50; then
+                    clear; exit 1
+                fi ;;
+            *) die "dialog failed (code ${rc})." ;;
+        esac
+    done
+}
+yesno() {   # yesno [--defaultno] "question"  -> 0 = yes, 1 = no
+    local opt=()
+    [[ ${1:-} == --defaultno ]] && { opt=(--defaultno); shift; }
+    dialog --backtitle "${BACKTITLE}" "${opt[@]}" --yesno "$1" 0 0
+}
+msg()  { dialog --backtitle "${BACKTITLE}" --title "$1" --msgbox "$2" 0 0 || true; }
+info() {   # short status line, in menus or on the console
+    if [[ ${UNATTENDED} == yes || ! -t 1 ]]; then echo "... $*"
+    else dialog --backtitle "${BACKTITLE}" --infobox "$*" 5 70; fi
+}
+
+# In unattended mode every answer must come from the file.
+need() { [[ -n ${ANS[$1]:-} ]] || die "Missing setting ${1} in the answers file."; }
+
+# Partition N of a disk: /dev/sda + 2 = /dev/sda2, /dev/nvme0n1 + 2 = /dev/nvme0n1p2
+partdev() { case "$1" in *[0-9]) echo "${1}p$2" ;; *) echo "${1}$2" ;; esac; }
+
+ram_mib() { awk '/MemTotal/ {print int(($2 + 1023) / 1024)}' /proc/meminfo; }
+gib() { echo $(( ($1 + 1023) / 1024 )); }   # MiB -> GiB, rounded up
+
+# ---------------------------------------------------------------------
+# Answers file (--config): KEY=value lines, read as text (never run)
+# ---------------------------------------------------------------------
+KEYS="NETWORK WIFI_SSID WIFI_PASSWORD LOCALE KEYMAP TIMEZONE HOSTNAME FULLNAME USERNAME
+      PASSWORD DISK MODE ENCRYPT LUKS_PASSWORD UPDATE CONFIRM REBOOT"
+
+load_answers() {
+    local line key val
+    [[ -r $1 ]] || die "Can't read the answers file $1"
+    while IFS= read -r line || [[ -n ${line} ]]; do
+        [[ ${line} =~ ^[[:space:]]*(#|$) ]] && continue
+        [[ ${line} =~ ^[[:space:]]*([A-Z_]+)=(.*)$ ]] || die "Can't understand this line in $1: ${line}"
+        key=${BASH_REMATCH[1]}; val=${BASH_REMATCH[2]}
+        if [[ ${val} =~ ^\"(.*)\"[[:space:]]*(#.*)?$ || ${val} =~ ^\'(.*)\'[[:space:]]*(#.*)?$ ]]; then
+            val=${BASH_REMATCH[1]}
+        else
+            val=${val%%[[:space:]]#*}                 # drop a trailing "  # note"
+            val=${val%"${val##*[![:space:]]}"}        # drop trailing spaces
+        fi
+        [[ " ${KEYS//$'\n'/ } " == *" ${key} "* ]] || die "Unknown setting ${key} in $1"
+        ANS[${key}]=${val}
+    done <"$1"
+}
+
+# ---------------------------------------------------------------------
+# Checks before starting
+# ---------------------------------------------------------------------
+preflight() {
+    [[ ${EUID} -eq 0 ]] || { echo "Run as root: mipos-install"; exit 1; }
+    [[ -d /sys/firmware/efi ]] || { echo "This PC started in old BIOS mode. ${DISTRO_NAME} needs UEFI."; exit 1; }
+    [[ -d ${LIVE_ROOT}/usr ]] || { echo "Can't find the live system at ${LIVE_ROOT}. Run this from the ${DISTRO_NAME} ISO."; exit 1; }
+    local c
+    for c in dialog sgdisk sfdisk partx wipefs mkfs.fat mkfs.btrfs btrfs cryptsetup rsync \
+             arch-chroot lsblk blkid findmnt iwctl loadkeys grub-install; do
+        command -v "${c}" >/dev/null || { echo "Missing tool: ${c}"; exit 1; }
+    done
+    mkdir -p "$(dirname "${LOG}")"
+    : >"${LOG}"
+    chmod 600 "${LOG}"
+    log "${BACKTITLE} started (unattended=${UNATTENDED}, dry-run=${DRY_RUN})"
+}
+
+# ---------------------------------------------------------------------
+# 1. Network
+# ---------------------------------------------------------------------
+online() { ping -c 1 -W 3 archlinux.org >/dev/null 2>&1; }
+
+wifi_dev() {   # first Wi-Fi interface, e.g. wlan0
+    local d
+    for d in /sys/class/net/*/wireless; do [[ -e ${d} ]] && { basename "$(dirname "${d}")"; return; }; done
+    return 1
+}
+
+wait_online() {   # wait up to $1 seconds
+    local i
+    for ((i = 0; i < $1; i++)); do online && return 0; sleep 1; done
+    return 1
+}
+
+wifi_connect() {   # wifi_connect DEV SSID PASSWORD(may be empty)
+    rfkill unblock wifi 2>/dev/null || true
+    if [[ -n $3 ]]; then
+        run iwctl --passphrase "$3" station "$1" connect "$2" || return 1
+    else
+        run iwctl station "$1" connect "$2" || return 1
+    fi
+    wait_online 20
+}
+
+wifi_menu() {
+    local dev lines=() names=() line ssid sec items=() choice pw
+    dev="$(wifi_dev)" || { msg "Wi-Fi" "No Wi-Fi card found."; return; }
+    rfkill unblock wifi 2>/dev/null || true
+    info "Searching for Wi-Fi networks..."
+    iwctl station "${dev}" scan >/dev/null 2>&1 || true
+    sleep 4
+    # iwctl prints a table with colors; strip them and read "name  security  signal".
+    mapfile -t lines < <(iwctl station "${dev}" get-networks 2>/dev/null | sed -e 's/\x1b\[[0-9;]*m//g')
+    for line in "${lines[@]}"; do
+        if [[ ${line} =~ ^[[:space:]\>]*(.*[^[:space:]])[[:space:]]+(psk|open|8021x|wep)[[:space:]]+(\*+)[[:space:]]*$ ]]; then
+            ssid=${BASH_REMATCH[1]}; sec=${BASH_REMATCH[2]}
+            names+=("${ssid}")
+            items+=("${#names[@]}" "$(printf '%-6s %-5s %s' "${BASH_REMATCH[3]}" "${sec}" "${ssid}")")
+        fi
+    done
+    (( ${#names[@]} )) || { msg "Wi-Fi" "No Wi-Fi networks found. Move closer to the router and try again."; return; }
+    choice="$(ui --title "Wi-Fi" --menu "Pick your network (signal, security, name):" 0 0 0 "${items[@]}")"
+    ssid=${names[choice - 1]}
+    pw=""
+    if [[ ${items[choice * 2 - 1]} != *" open "* ]]; then
+        pw="$(ui --title "Wi-Fi" --insecure --passwordbox "Password for \"${ssid}\":" 8 60)"
+    fi
+    info "Connecting to ${ssid}..."
+    if wifi_connect "${dev}" "${ssid}" "${pw}"; then
+        WIFI_USED=yes
+    else
+        msg "Wi-Fi" "Couldn't connect to \"${ssid}\". Check the password and try again."
+    fi
+}
+
+step_network() {
+    NET_OK=no; WIFI_USED=no
+    if [[ ${UNATTENDED} == yes ]]; then
+        case "${ANS[NETWORK]:-auto}" in
+            skip) return ;;
+            auto)
+                if ! wait_online 10 && [[ -n ${ANS[WIFI_SSID]:-} ]]; then
+                    wifi_connect "$(wifi_dev)" "${ANS[WIFI_SSID]}" "${ANS[WIFI_PASSWORD]:-}" && WIFI_USED=yes || true
+                fi
+                online && NET_OK=yes
+                return ;;
+            *) die "NETWORK must be auto or skip." ;;
+        esac
+    fi
+    info "Checking the internet connection..."
+    while true; do
+        if wait_online 5; then
+            NET_OK=yes
+            info "Connected to the internet."; sleep 1
+            return
+        fi
+        local opts=()
+        wifi_dev >/dev/null && opts+=(wifi "Connect to Wi-Fi")
+        opts+=(again "Check again (plug in a cable first)" skip "Skip: install without internet")
+        case "$(ui --title "Step 1 of ${STEP_TOTAL}: Network" --menu \
+            "Not connected to the internet.\n\nThe internet is only needed to update the new system at the end. Without it, the installer still works." \
+            0 0 0 "${opts[@]}")" in
+            wifi)  wifi_menu ;;
+            again) info "Waiting for the network..." ;;
+            skip)  return ;;
+        esac
+    done
+}
+
+# ---------------------------------------------------------------------
+# 2. Language and keyboard
+# ---------------------------------------------------------------------
+step_locale() {
+    local items=() l
+    if [[ ${UNATTENDED} == yes ]]; then
+        need LOCALE; need KEYMAP
+    else
+        if [[ -z ${ANS[LOCALE]:-} ]]; then
+            # One entry per language, en_US first.
+            mapfile -t items < <({ echo en_US.UTF-8; awk '$2 == "UTF-8" {print $1}' /usr/share/i18n/SUPPORTED; } | awk '!seen[$0]++')
+            ANS[LOCALE]="$(ui --title "Step 2 of ${STEP_TOTAL}: Language" --no-items --default-item en_US.UTF-8 \
+                --menu "Language for dates, numbers and sorting.\n(Programs show English text: translations are left out to save space.)" \
+                20 60 12 "${items[@]}")"
+        fi
+        if [[ -z ${ANS[KEYMAP]:-} ]]; then
+            items=(us)
+            mapfile -t -O 1 items < <(localectl list-keymaps --no-pager 2>/dev/null | grep -vx us)
+            ANS[KEYMAP]="$(ui --title "Step 2 of ${STEP_TOTAL}: Keyboard" --no-items --default-item us \
+                --menu "Keyboard layout (us = US English, uk = British, de = German...).\nTip: press a letter to jump." \
+                20 60 12 "${items[@]}")"
+        fi
+    fi
+    grep -q "^${ANS[LOCALE]} " /usr/share/i18n/SUPPORTED || die "Unknown language: ${ANS[LOCALE]}"
+    # Use the layout right away, so passwords typed below match the new system.
+    loadkeys "${ANS[KEYMAP]}" >>"${LOG}" 2>&1 || die "Unknown keyboard layout: ${ANS[KEYMAP]}"
+}
+
+# ---------------------------------------------------------------------
+# 3. Timezone
+# ---------------------------------------------------------------------
+step_timezone() {
+    local region items=() zones=()
+    if [[ ${UNATTENDED} == yes ]]; then
+        need TIMEZONE
+    elif [[ -z ${ANS[TIMEZONE]:-} ]]; then
+        mapfile -t zones < <(timedatectl list-timezones --no-pager)
+        mapfile -t items < <(printf '%s\n' "${zones[@]}" | awk -F/ 'NF > 1 {print $1}' | sort -u)
+        region="$(ui --title "Step 3 of ${STEP_TOTAL}: Timezone" --no-items \
+            --menu "Your region:" 20 50 12 UTC "${items[@]}")"
+        if [[ ${region} == UTC ]]; then
+            ANS[TIMEZONE]=UTC
+        else
+            mapfile -t items < <(printf '%s\n' "${zones[@]}" | grep "^${region}/" | sed "s|^${region}/||")
+            ANS[TIMEZONE]="${region}/$(ui --title "Step 3 of ${STEP_TOTAL}: Timezone" --no-items \
+                --menu "Your city (or the nearest one in your timezone):" 20 50 12 "${items[@]}")"
+        fi
+    fi
+    [[ -f /usr/share/zoneinfo/${ANS[TIMEZONE]} ]] || die "Unknown timezone: ${ANS[TIMEZONE]}"
+}
+
+# ---------------------------------------------------------------------
+# 4. Computer name
+# ---------------------------------------------------------------------
+valid_hostname() { [[ $1 =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]; }
+
+step_hostname() {
+    if [[ ${UNATTENDED} == yes ]]; then
+        need HOSTNAME
+    else
+        while [[ -z ${ANS[HOSTNAME]:-} ]] || ! valid_hostname "${ANS[HOSTNAME]}"; do
+            ANS[HOSTNAME]="$(ui --title "Step 4 of ${STEP_TOTAL}: Computer name" --inputbox \
+                "The name of this computer on the network.\nLetters, numbers and dashes (-), not at the start or end." \
+                10 60 "${ANS[HOSTNAME]:-${DISTRO_ID}}")"
+            valid_hostname "${ANS[HOSTNAME]}" || msg "Computer name" "\"${ANS[HOSTNAME]}\" can't be used. Try again."
+        done
+    fi
+    valid_hostname "${ANS[HOSTNAME]}" || die "Invalid computer name: ${ANS[HOSTNAME]}"
+}
+
+# ---------------------------------------------------------------------
+# 5. User account
+# ---------------------------------------------------------------------
+valid_username() {
+    [[ $1 =~ ^[a-z][a-z0-9_-]{0,30}$ ]] && ! grep -q "^$1:" "${LIVE_ROOT}/etc/passwd"
+}
+
+ask_password() {   # ask_password "title" "text" -> prints the password
+    local p1 p2
+    while true; do
+        p1="$(ui --title "$1" --insecure --passwordbox "$2" 10 60)"
+        p2="$(ui --title "$1" --insecure --passwordbox "Type it again:" 8 60)"
+        if [[ -z ${p1} ]]; then msg "$1" "The password can't be empty."
+        elif [[ ${p1} != "${p2}" ]]; then msg "$1" "The two passwords don't match. Try again."
+        else printf '%s' "${p1}"; return; fi
+    done
+}
+
+step_user() {
+    local suggest
+    if [[ ${UNATTENDED} == yes ]]; then
+        need USERNAME; need PASSWORD
+    else
+        T="Step 5 of ${STEP_TOTAL}: Your account"
+        [[ -n ${ANS[FULLNAME]+set} ]] || ANS[FULLNAME]="$(ui --title "${T}" --inputbox "Your full name (may be empty):" 8 60)"
+        suggest="$(printf '%s' "${ANS[FULLNAME]%% *}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9')"
+        while [[ -z ${ANS[USERNAME]:-} ]] || ! valid_username "${ANS[USERNAME]}"; do
+            ANS[USERNAME]="$(ui --title "${T}" --inputbox \
+                "Username: used to log in. Lowercase letters, numbers, - or _, starting with a letter." \
+                9 60 "${ANS[USERNAME]:-${suggest}}")"
+            valid_username "${ANS[USERNAME]}" || msg "${T}" "\"${ANS[USERNAME]}\" can't be used (wrong characters, or a system name). Try another."
+        done
+        [[ -n ${ANS[PASSWORD]:-} ]] || ANS[PASSWORD]="$(ask_password "${T}" \
+            "Password for ${ANS[USERNAME]}.\nUsed to log in and for admin tasks (sudo). The root account stays locked.")"
+    fi
+    valid_username "${ANS[USERNAME]}" || die "Invalid username: ${ANS[USERNAME]}"
+}
+
+# ---------------------------------------------------------------------
+# 6. Disk
+# ---------------------------------------------------------------------
+live_disk() {   # the USB stick we booted from: never offered
+    local src
+    src="$(findmnt -no SOURCE /run/archiso/bootmnt 2>/dev/null || true)"
+    [[ -n ${src} ]] && lsblk -no PKNAME "${src}" 2>/dev/null | head -n1
+}
+
+need_mib() { echo $(( (MIN_ROOT_GB * 1024) + EFI_SIZE_MB + $(ram_mib) )); }
+
+largest_free() {   # prints "START END" (sectors, inclusive) of the largest free area of $1
+    sfdisk -F "$1" 2>/dev/null | awk 'f && $3 > 0 {print $1, $2, $3} /^ *Start/ {f=1}' \
+        | sort -k3 -n | tail -n1 | awk '{print $1, $2}'
+}
+
+free_mib() {   # size of the largest free area of $1, in MiB
+    local area ss
+    area="$(largest_free "$1")"; [[ -n ${area} ]] || { echo 0; return; }
+    ss="$(blockdev --getss "$1")"
+    read -r s e <<<"${area}"
+    echo $(( (e - s + 1) * ss / 1048576 ))
+}
+
+has_windows() {   # is there a Windows boot manager on any EFI partition of $1?
+    local p m found=1
+    for p in $(lsblk -lnpo NAME,PARTTYPE "$1" | awk 'tolower($2) == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" {print $1}'); do
+        m="$(mktemp -d)"
+        if mount -o ro "${p}" "${m}" 2>/dev/null; then
+            [[ -f ${m}/EFI/Microsoft/Boot/bootmgfw.efi ]] && found=0
+            umount "${m}"
+        fi
+        rmdir "${m}"
+    done
+    return ${found}
+}
+
+step_disk() {
+    local live items=() name size model need
+    live="$(live_disk || true)"
+    need="$(need_mib)"
+    if [[ ${UNATTENDED} == yes ]]; then
+        need DISK; need MODE
+    else
+        T="Step 6 of ${STEP_TOTAL}: Disk"
+        if [[ -z ${ANS[DISK]:-} ]]; then
+            while read -r name size model; do
+                [[ /dev/${live} == "${name}" ]] && continue
+                items+=("${name}" "$(printf '%5d GB  %s' $((size / 1000000000)) "${model:-disk}")")
+            done < <(lsblk -dbnpo NAME,SIZE,MODEL,TYPE | awk '$NF == "disk" && $1 !~ /zram|loop/ {NF--; print}')
+            (( ${#items[@]} )) || die "No disk found to install on."
+            ANS[DISK]="$(ui --title "${T}" --menu "Install ${DISTRO_NAME} on which disk?" 0 0 0 "${items[@]}")"
+        fi
+        if [[ -z ${ANS[MODE]:-} ]]; then
+            local layout fm opts=(erase "Erase the whole disk")
+            layout="$(lsblk -o NAME,SIZE,FSTYPE,LABEL "${ANS[DISK]}" 2>/dev/null)"
+            fm="$(free_mib "${ANS[DISK]}")"
+            if (( fm >= need )); then
+                opts+=(free "Use the $(gib "${fm}") GB of free space (keep Windows and other data)")
+            fi
+            ANS[MODE]="$(ui --title "${T}" --menu \
+                "What's on ${ANS[DISK]} now:\n\n${layout}\n\nLargest free (unused) space: $(gib "${fm}") GB. ${DISTRO_NAME} needs $(gib "${need}") GB.\nTo make room next to Windows: in Windows, open Disk Management and shrink the Windows partition." \
+                0 0 0 "${opts[@]}")"
+        fi
+    fi
+
+    [[ -b ${ANS[DISK]} ]] || die "Not a disk: ${ANS[DISK]}"
+    [[ $(lsblk -dno TYPE "${ANS[DISK]}") == disk ]] || die "${ANS[DISK]} is not a whole disk (give e.g. /dev/sda, not /dev/sda1)."
+    [[ /dev/${live} != "${ANS[DISK]}" ]] || die "${ANS[DISK]} is the USB stick the installer runs from."
+    if lsblk -nro MOUNTPOINTS "${ANS[DISK]}" | grep -q .; then
+        die "Something on ${ANS[DISK]} is in use (mounted). Unmount it or restart the installer."
+    fi
+    case "${ANS[MODE]}" in
+        free)
+            [[ $(blkid -o value -s PTTYPE "${ANS[DISK]}") == gpt ]] \
+                || die "${ANS[DISK]} doesn't use a GPT partition table, so \"free space\" mode can't be used (it would have to convert the disk)." ;;&
+        erase)
+            (( $(lsblk -dbno SIZE "${ANS[DISK]}") / 1048576 >= need )) \
+                || die "${ANS[DISK]} is too small: ${DISTRO_NAME} needs $(gib "${need}") GB (system + swap the size of your RAM)." ;;
+        free)
+            (( $(free_mib "${ANS[DISK]}") >= need )) \
+                || die "Not enough free space on ${ANS[DISK]} (need $(gib "${need}") GB). In Windows, shrink the Windows partition in Disk Management first." ;;
+        *) die "MODE must be erase or free." ;;
+    esac
+    WINDOWS=no
+    has_windows "${ANS[DISK]}" && WINDOWS=yes
+}
+
+# ---------------------------------------------------------------------
+# 7. Encryption
+# ---------------------------------------------------------------------
+step_encrypt() {
+    if [[ ${UNATTENDED} == yes ]]; then
+        need ENCRYPT
+    elif [[ -z ${ANS[ENCRYPT]:-} ]]; then
+        T="Step 7 of ${STEP_TOTAL}: Encryption"
+        case "${ENCRYPTION}" in
+            yes|no) ANS[ENCRYPT]=${ENCRYPTION} ;;
+            *)
+                if yesno --defaultno "Encrypt ${DISTRO_NAME}?\n\nEncryption locks your files with a password, asked every time the computer starts. If the laptop is lost or stolen, nobody can read them.\n\nIf you forget this password, your data can't be recovered."; then
+                    ANS[ENCRYPT]=yes
+                else
+                    ANS[ENCRYPT]=no
+                fi ;;
+        esac
+        if [[ ${ANS[ENCRYPT]} == yes && -z ${ANS[LUKS_PASSWORD]:-} ]]; then
+            if yesno "Use your account password for the encryption too?\n\n(Choose No to set a separate one.)"; then
+                ANS[LUKS_PASSWORD]=${ANS[PASSWORD]}
+            else
+                ANS[LUKS_PASSWORD]="$(ask_password "${T}" "Encryption password (asked at every start):")"
+            fi
+        fi
+    fi
+    case "${ANS[ENCRYPT]}" in
+        yes) [[ -n ${ANS[LUKS_PASSWORD]:-} ]] || die "ENCRYPT=yes needs LUKS_PASSWORD." ;;
+        no)  ;;
+        *)   die "ENCRYPT must be yes or no." ;;
+    esac
+}
+
+# ---------------------------------------------------------------------
+# 8. Summary and confirmation
+# ---------------------------------------------------------------------
+step_summary() {
+    local where net text answer
+    if [[ ${ANS[MODE]} == erase ]]; then
+        where="ERASE EVERYTHING on ${ANS[DISK]} ($(lsblk -dno SIZE,MODEL "${ANS[DISK]}" | xargs))"
+    else
+        where="free space on ${ANS[DISK]} ($(gib "$(free_mib "${ANS[DISK]}")") GB); everything else is kept"
+    fi
+    net="not connected (no update at the end)"
+    [[ ${NET_OK} == yes ]] && net="connected (update packages at the end)"
+    text="Network:        ${net}
+Language:       ${ANS[LOCALE]}
+Keyboard:       ${ANS[KEYMAP]}
+Timezone:       ${ANS[TIMEZONE]}
+Computer name:  ${ANS[HOSTNAME]}
+User:           ${ANS[USERNAME]}${ANS[FULLNAME]:+ (${ANS[FULLNAME]})}, may use sudo; root locked
+Install to:     ${where}
+Encryption:     ${ANS[ENCRYPT]}
+Hibernation:    swap file of $(gib "$(ram_mib)") GB (size of RAM)
+Windows found:  ${WINDOWS}"
+    log "Summary:"$'\n'"${text}"
+    if [[ ${UNATTENDED} == yes ]]; then
+        echo "${text}"
+        [[ ${ANS[CONFIRM]:-} == yes ]] || die "Set CONFIRM=yes in the answers file to really install."
+        return
+    fi
+    while true; do
+        answer="$(ui --title "Step 8 of ${STEP_TOTAL}: Check your choices" --inputbox \
+            "${text}\n\nNothing has been changed yet. To install, type yes and press Enter.\n(Cancel = quit without changes.)" 0 0)"
+        [[ ${answer,,} == yes ]] && return
+        msg "Not started" "You typed \"${answer}\", not \"yes\". Nothing was changed."
+    done
+}
+
+# ---------------------------------------------------------------------
+# Install steps. Each runs in a subshell that stops at the first error;
+# values it finds (partition names) come back through ${STATE}.
+# ---------------------------------------------------------------------
+STATE="$(mktemp)"
+save() { printf '%s=%q\n' "$1" "$2" >>"${STATE}"; }
+STEP_NO=0
+STEPS=10
+
+step() {   # step "title" function
+    local title=$1 rc
+    shift
+    STEP_NO=$((STEP_NO + 1))
+    log "== ${title}"
+    info "Installing (${STEP_NO}/${STEPS}): ${title}..."
+    set +e
+    ( set -Eeuo pipefail; "$@" ) >>"${LOG}" 2>&1
+    rc=$?
+    set -e
+    (( rc == 0 )) || die "\"${title}\" failed."
+    # shellcheck source=/dev/null
+    source "${STATE}"
+}
+
+do_partition() {
+    local disk=${ANS[DISK]} ss s1 e1 s2 e2 area esp root
+    if [[ ${ANS[MODE]} == erase ]]; then
+        wipefs -af "${disk}"
+        sgdisk --zap-all "${disk}"
+        sgdisk -n "1:0:+${EFI_SIZE_MB}M" -t "1:${EFI_TYPE}" -c "1:${DISTRO_NAME} EFI" \
+               -n "2:0:0" -t "2:${ROOT_TYPE}" -c "2:${DISTRO_NAME}" "${disk}"
+        partx -u "${disk}" || true; udevadm settle
+        save ESP_PART "$(partdev "${disk}" 1)"
+        save ROOT_PART "$(partdev "${disk}" 2)"
+        return
+    fi
+    # Free space: two new partitions inside the largest free area. Our own EFI
+    # partition, so Windows' (often only 100 MB) EFI partition is never touched.
+    ss="$(blockdev --getss "${disk}")"
+    area="$(largest_free "${disk}")"
+    read -r s1 e2 <<<"${area}"
+    s1=$(( (s1 + 2047) / 2048 * 2048 ))                    # align to 1 MiB
+    e1=$(( s1 + EFI_SIZE_MB * 1048576 / ss - 1 ))
+    s2=$(( e1 + 1 ))
+    e2=$(( (e2 + 1) / 2048 * 2048 - 1 ))
+    (( e2 > s2 )) || { echo "Free area too small"; return 1; }
+    sgdisk -n "0:${s1}:${e1}" -t "0:${EFI_TYPE}" -c "0:${DISTRO_NAME} EFI" "${disk}"
+    sgdisk -n "0:${s2}:${e2}" -t "0:${ROOT_TYPE}" -c "0:${DISTRO_NAME}" "${disk}"
+    partx -u "${disk}" || partx -a "${disk}" || true; udevadm settle
+    # Find the two new partitions by where they start.
+    esp="$(sfdisk -l -o Device,Start "${disk}" | awk -v s="${s1}" '$2 == s {print $1}')"
+    root="$(sfdisk -l -o Device,Start "${disk}" | awk -v s="${s2}" '$2 == s {print $1}')"
+    [[ -n ${esp} && -n ${root} ]] || { echo "Can't find the new partitions"; return 1; }
+    save ESP_PART "${esp}"
+    save ROOT_PART "${root}"
+}
+
+do_format() {
+    local dev=${ROOT_PART}
+    for _ in 1 2 3 4 5; do [[ -b ${ESP_PART} && -b ${ROOT_PART} ]] && break; sleep 1; done
+    if [[ ${ANS[ENCRYPT]} == yes ]]; then
+        # LUKS2 with argon2id (the strong default). Key goes through stdin, never the log.
+        printf '%s' "${ANS[LUKS_PASSWORD]}" | cryptsetup luksFormat --type luks2 --batch-mode \
+            --label "${DISTRO_ID}-crypt" --key-file=- "${ROOT_PART}"
+        printf '%s' "${ANS[LUKS_PASSWORD]}" | cryptsetup open --allow-discards --key-file=- \
+            "${ROOT_PART}" "${CRYPT_NAME}"
+        dev=/dev/mapper/${CRYPT_NAME}
+    fi
+    save ROOT_DEV "${dev}"
+    mkfs.fat -F 32 -n MIPOS_EFI "${ESP_PART}"
+    mkfs.btrfs -f -L "${DISTRO_ID}" "${dev}"
+}
+
+do_mount() {
+    local opts=${BTRFS_MOUNT_OPTIONS} sv m
+    mkdir -p "${TARGET}"
+    mount "${ROOT_DEV}" "${TARGET}"
+    for sv in ${BTRFS_SUBVOLUMES}; do btrfs subvolume create "${TARGET}/${sv}"; done
+    umount "${TARGET}"
+    mount -o "${opts},subvol=@" "${ROOT_DEV}" "${TARGET}"
+    for m in "home:@home" "var/log:@var_log" "var/cache:@var_cache" "swap:@swap"; do
+        mkdir -p "${TARGET}/${m%%:*}"
+        mount -o "${opts},subvol=${m##*:}" "${ROOT_DEV}" "${TARGET}/${m%%:*}"
+    done
+    mkdir -p "${TARGET}/boot"
+    mount -o "${ESP_OPTS}" "${ESP_PART}" "${TARGET}/boot"
+    # Swap file the size of RAM, for hibernation (btrfs makes it no-copy, uncompressed).
+    btrfs filesystem mkswapfile --size "$(ram_mib)m" "${TARGET}/swap/swapfile"
+    save RESUME_OFFSET "$(btrfs inspect-internal map-swapfile -r "${TARGET}/swap/swapfile")"
+}
+
+do_copy() {
+    # Copy the live system image; the -x keeps rsync on this one file system.
+    # /boot is skipped: it's the FAT EFI partition (no Linux permissions), and
+    # the live image's /boot is empty anyway.
+    local kver
+    if [[ ${UNATTENDED} == no && -t 1 ]]; then
+        rsync -aAXHx --exclude=/boot --info=progress2 --no-inc-recursive "${LIVE_ROOT}/" "${TARGET}/" \
+            | stdbuf -oL tr '\r' '\n' \
+            | awk '{for (i = 1; i <= NF; i++) if ($i ~ /^[0-9]+%$/) {sub("%", "", $i); print $i; fflush()}}' \
+            | dialog --backtitle "${BACKTITLE}" --gauge "Copying ${DISTRO_NAME} to the disk..." 7 70 0 >/dev/tty
+    else
+        rsync -aAXHx --exclude=/boot "${LIVE_ROOT}/" "${TARGET}/"
+    fi
+    # The kernel file goes to /boot (the live image keeps it in /usr/lib/modules).
+    kver="$(ls "${TARGET}/usr/lib/modules" | head -n1)"
+    cp "${TARGET}/usr/lib/modules/${kver}/vmlinuz" "${TARGET}/boot/vmlinuz-${KERNEL}"
+    # Wi-Fi networks you connected to in the installer work after the restart too.
+    if compgen -G "/var/lib/iwd/*" >/dev/null; then
+        mkdir -p "${TARGET}/var/lib/iwd"
+        cp -a /var/lib/iwd/. "${TARGET}/var/lib/iwd/"
+    fi
+}
+
+do_cleanup_live() {
+    # Remove what only makes sense on the live ISO.
+    local t=${TARGET}
+    rm -f  "${t}/etc/systemd/system/getty@tty1.service.d/autologin.conf" \
+           "${t}/etc/mkinitcpio.conf.d/archiso.conf" \
+           "${t}/etc/systemd/journald.conf.d/volatile-storage.conf" \
+           "${t}/etc/systemd/logind.conf.d/do-not-suspend.conf" \
+           "${t}/etc/systemd/system-generators/systemd-gpt-auto-generator" \
+           "${t}/etc/systemd/system/pacman-init.service" \
+           "${t}/etc/systemd/system/etc-pacman.d-gnupg.mount" \
+           "${t}/etc/systemd/system/multi-user.target.wants/pacman-init.service" \
+           "${t}/usr/local/bin/mipos-install" \
+           "${t}/etc/machine-id"
+    rmdir "${t}/etc/systemd/system/getty@tty1.service.d" 2>/dev/null || true
+    printf '\n  %s %s\n\n' "${DISTRO_NAME}" "${DISTRO_VERSION}" >"${t}/etc/motd"
+    arch-chroot "${t}" pacman -R --noconfirm mkinitcpio-archiso
+}
+
+do_settings() {
+    local t=${TARGET} l
+    # Language
+    for l in "${ANS[LOCALE]}" en_US.UTF-8; do
+        sed -i "s/^#\(${l//./\\.} \)/\1/" "${t}/etc/locale.gen"
+    done
+    echo "LANG=${ANS[LOCALE]}" >"${t}/etc/locale.conf"
+    arch-chroot "${t}" locale-gen
+    # Keyboard (also used when typing the encryption password at start)
+    printf 'KEYMAP=%s\n' "${ANS[KEYMAP]}" >"${t}/etc/vconsole.conf"
+    # Timezone and clock
+    ln -sf "/usr/share/zoneinfo/${ANS[TIMEZONE]}" "${t}/etc/localtime"
+    arch-chroot "${t}" hwclock --systohc || true
+    # Computer name
+    echo "${ANS[HOSTNAME]}" >"${t}/etc/hostname"
+    printf '127.0.0.1 localhost\n::1       localhost\n127.0.1.1 %s\n' "${ANS[HOSTNAME]}" >"${t}/etc/hosts"
+    # A new unique machine ID
+    arch-chroot "${t}" systemd-machine-id-setup
+    # pacman: keyring, and the size-trimming rules (NoExtract) for future installs
+    arch-chroot "${t}" pacman-key --init
+    arch-chroot "${t}" pacman-key --populate archlinux
+    if ! grep -q 'mipOS size trimming' "${t}/etc/pacman.conf"; then
+        awk -v rules="$(printf '# mipOS size trimming (from /etc/pacman.d/mipos-noextract.conf)\n'; grep '^NoExtract' "${t}/etc/pacman.d/mipos-noextract.conf")" \
+            '{print} /^\[options\]/ && !done {print rules; done=1}' \
+            "${t}/etc/pacman.conf" >"${t}/etc/pacman.conf.new"
+        mv "${t}/etc/pacman.conf.new" "${t}/etc/pacman.conf"
+    fi
+    # Services: network, Wi-Fi, time sync, power saving, SSD trim
+    arch-chroot "${t}" systemctl enable systemd-networkd systemd-resolved iwd \
+        systemd-timesyncd tlp thermald fstrim.timer
+}
+
+do_users() {
+    local t=${TARGET}
+    arch-chroot "${t}" useradd -m -G "${USER_GROUPS// /,}" -s /bin/bash \
+        -c "${ANS[FULLNAME]:-}" "${ANS[USERNAME]}"
+    printf '%s:%s\n' "${ANS[USERNAME]}" "${ANS[PASSWORD]}" | arch-chroot "${t}" chpasswd
+    # Members of "wheel" may use sudo (with their own password).
+    printf '%%wheel ALL=(ALL:ALL) ALL\n' >"${t}/etc/sudoers.d/10-wheel"
+    chmod 440 "${t}/etc/sudoers.d/10-wheel"
+    # Root can't log in (it had no password on the live ISO).
+    arch-chroot "${t}" usermod -p '!*' root
+}
+
+do_fstab() {
+    local t=${TARGET} uuid esp opts=${BTRFS_MOUNT_OPTIONS}
+    uuid="$(blkid -s UUID -o value "${ROOT_DEV}")"
+    esp="$(blkid -s UUID -o value "${ESP_PART}")"
+    cat >"${t}/etc/fstab" <<EOF
+# /etc/fstab: file systems mounted at start (written by mipos-install)
+# <device>      <where>     <type>  <options>                              <dump> <check>
+UUID=${uuid}  /           btrfs   ${opts},subvol=@          0 0
+UUID=${uuid}  /home       btrfs   ${opts},subvol=@home      0 0
+UUID=${uuid}  /var/log    btrfs   ${opts},subvol=@var_log   0 0
+UUID=${uuid}  /var/cache  btrfs   ${opts},subvol=@var_cache 0 0
+UUID=${uuid}  /swap       btrfs   ${opts},subvol=@swap      0 0
+UUID=${esp}   /boot       vfat    ${ESP_OPTS}  0 2
+/swap/swapfile  none      swap    defaults                  0 0
+EOF
+    if [[ ${ANS[ENCRYPT]} == yes ]]; then
+        save LUKS_UUID "$(blkid -s UUID -o value "${ROOT_PART}")"
+    else
+        save LUKS_UUID ""
+    fi
+    save FS_UUID "${uuid}"
+}
+
+do_update() {
+    # Only with internet. A failed update is not fatal: the system works without it.
+    arch-chroot "${TARGET}" pacman -Syu --noconfirm \
+        || echo "WARNING: update failed; run 'sudo pacman -Syu' after the restart."
+}
+
+do_initramfs() {
+    local t=${TARGET} hooks=() h
+    # The start-up system. Only hooks that exist in this mkinitcpio version are used.
+    for h in base systemd autodetect microcode modconf kms keyboard sd-vconsole block \
+             $([[ ${ANS[ENCRYPT]} == yes ]] && echo sd-encrypt) filesystems fsck; do
+        [[ -f ${t}/usr/lib/initcpio/install/${h} ]] && hooks+=("${h}")
+    done
+    mkdir -p "${t}/etc/mkinitcpio.conf.d" "${t}/etc/mkinitcpio.d"
+    printf '# Written by mipos-install\nHOOKS=(%s)\nCOMPRESSION="zstd"\n' "${hooks[*]}" \
+        >"${t}/etc/mkinitcpio.conf.d/mipos.conf"
+    cat >"${t}/etc/mkinitcpio.d/${KERNEL}.preset" <<EOF
+# mkinitcpio preset for ${KERNEL} (written by mipos-install): one image, no fallback
+ALL_kver="/boot/vmlinuz-${KERNEL}"
+PRESETS=('default')
+default_image="/boot/initramfs-${KERNEL}.img"
+EOF
+    arch-chroot "${t}" mkinitcpio -P
+}
+
+set_grub() {   # set_grub KEY "value" in /etc/default/grub (replace or add)
+    local f=${TARGET}/etc/default/grub
+    if grep -qE "^#?$1=" "${f}"; then
+        sed -i -E "s|^#?$1=.*|$1=\"$2\"|" "${f}"
+    else
+        printf '%s="%s"\n' "$1" "$2" >>"${f}"
+    fi
+}
+
+do_bootloader() {
+    local t=${TARGET} cmdline=""
+    [[ -n ${LUKS_UUID} ]] && cmdline="rd.luks.name=${LUKS_UUID}=${CRYPT_NAME} rd.luks.options=discard "
+    cmdline+="resume=UUID=${FS_UUID} resume_offset=${RESUME_OFFSET}"
+    set_grub GRUB_DISTRIBUTOR "${DISTRO_NAME}"
+    set_grub GRUB_CMDLINE_LINUX "${cmdline}"
+    set_grub GRUB_CMDLINE_LINUX_DEFAULT "${KERNEL_CMDLINE_EXTRA}"
+    set_grub GRUB_DISABLE_SUBMENU "y"
+    if [[ ${WINDOWS} == yes || ${ANS[MODE]} == free ]]; then
+        set_grub GRUB_TIMEOUT "5"
+        set_grub GRUB_TIMEOUT_STYLE "menu"
+        set_grub GRUB_DISABLE_OS_PROBER "false"    # add Windows to the menu
+    else
+        set_grub GRUB_TIMEOUT "2"
+    fi
+    arch-chroot "${t}" grub-install --target=x86_64-efi --efi-directory=/boot \
+        --boot-directory=/boot --bootloader-id="${DISTRO_NAME}"
+    # Also as the default boot file of our EFI partition, for PCs that forget
+    # boot entries. Only ever on OUR EFI partition, never Windows'.
+    arch-chroot "${t}" grub-install --target=x86_64-efi --efi-directory=/boot \
+        --boot-directory=/boot --removable
+    arch-chroot "${t}" grub-mkconfig -o /boot/grub/grub.cfg
+}
+
+finish_report() {
+    local used
+    used="$(btrfs filesystem usage -b "${TARGET}" 2>/dev/null | awk -F: '/^ *Used:/ {gsub(/ /, "", $2); print int($2 / 1048576); exit}')"
+    {
+        echo "${DISTRO_NAME} installed $(date -u '+%Y-%m-%d %H:%M UTC')"
+        echo "Disk space used (compressed, incl. $(gib "$(ram_mib)") GB swap file): ${used} MiB"
+        echo "System without swap file: $(( used - $(ram_mib) )) MiB"
+        echo "Boot partition used: $(df -m --output=used "${TARGET}/boot" | tail -n1 | xargs) MiB"
+        echo "Packages: $(arch-chroot "${TARGET}" pacman -Qq | wc -l)"
+    } | tee "${TARGET}/var/log/mipos-install-size.txt" /tmp/mipos-install-size.txt >>"${LOG}"
+    cp "${LOG}" "${TARGET}/var/log/mipos-install.log"
+    chmod 600 "${TARGET}/var/log/mipos-install.log"
+}
+
+cleanup() {
+    set +e
+    swapoff "${TARGET}/swap/swapfile" 2>/dev/null
+    umount -R "${TARGET}" 2>/dev/null
+    cryptsetup close "${CRYPT_NAME}" 2>/dev/null
+    rm -f "${STATE}"
+}
+
+install_system() {
+    trap cleanup EXIT
+    STEPS=10
+    [[ ${NET_OK} == yes ]] && STEPS=11
+    step "Making partitions on ${ANS[DISK]}" do_partition
+    step "Formatting$([[ ${ANS[ENCRYPT]} == yes ]] && echo " and encrypting")" do_format
+    step "Creating Btrfs subvolumes and the swap file" do_mount
+    log "== Copying the system"
+    STEP_NO=$((STEP_NO + 1))
+    info "Installing (${STEP_NO}/${STEPS}): copying the system..."
+    set +e; ( set -Eeuo pipefail; do_copy ) 2>>"${LOG}"; rc=$?; set -e
+    (( rc == 0 )) || die "Copying the system failed."
+    step "Removing live-only settings" do_cleanup_live
+    step "Language, time, name, services" do_settings
+    step "Creating your user" do_users
+    step "Writing the list of file systems" do_fstab
+    [[ ${NET_OK} == yes && ${ANS[UPDATE]:-yes} == yes ]] && step "Updating packages (needs internet)" do_update
+    step "Building the start-up system (initramfs)" do_initramfs
+    step "Installing the boot loader (GRUB)" do_bootloader
+    finish_report
+    sync
+    cleanup
+    trap - EXIT
+}
+
+# ---------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------
+main() {
+    while (( $# )); do
+        case "$1" in
+            --config)  [[ -n ${2:-} ]] || { echo "--config needs a file"; exit 1; }
+                       UNATTENDED=yes; CONFIG_FILE=$2; shift ;;
+            --dry-run) DRY_RUN=yes ;;
+            -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+            *) echo "Unknown option: $1 (see mipos-install --help)"; exit 1 ;;
+        esac
+        shift
+    done
+    preflight
+    [[ ${UNATTENDED} == yes ]] && load_answers "${CONFIG_FILE}"
+    export TERM=${TERM:-linux}
+
+    if [[ ${UNATTENDED} == no ]]; then
+        msg "Welcome" "This installs ${DISTRO_NAME} ${DISTRO_VERSION} on this computer.\n\nYou'll answer ${STEP_TOTAL} short questions. Nothing is changed on your disks until you confirm the summary at the end.\n\nUse the arrow keys and Enter. Tab moves between the buttons."
+    fi
+    step_network
+    step_locale
+    step_timezone
+    step_hostname
+    step_user
+    step_disk
+    step_encrypt
+    step_summary
+
+    if [[ ${DRY_RUN} == yes ]]; then
+        [[ ${UNATTENDED} == no ]] && { msg "Dry run" "Dry run: stopping here. Nothing was changed."; clear; }
+        echo "Dry run finished: nothing was changed."
+        exit 0
+    fi
+
+    install_system
+
+    local done_text
+    done_text="${DISTRO_NAME} is installed.\n\n$(sed 's/$/\\n/' /tmp/mipos-install-size.txt | tr -d '\n')\n(Saved in /var/log/mipos-install-size.txt)\n\nRemove the USB stick, then restart.\nLog in as ${ANS[USERNAME]}. Useful first commands:\n  sudo pacman -Syu     update\n  iwctl                Wi-Fi\n  alsamixer            volume\n  systemctl hibernate  hibernate"
+    if [[ ${UNATTENDED} == yes ]]; then
+        cat /tmp/mipos-install-size.txt
+        echo "Installation finished."
+        [[ ${ANS[REBOOT]:-no} == yes ]] && systemctl reboot
+        exit 0
+    fi
+    if yesno "${done_text}\n\nRestart now?"; then
+        clear; systemctl reboot
+    fi
+    clear
+    echo "${DISTRO_NAME} is installed. Type 'reboot' to restart."
+}
+
+# Run only when started as a program (tests can "source" this file).
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then main "$@"; fi

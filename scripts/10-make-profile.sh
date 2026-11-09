@@ -30,6 +30,9 @@ while IFS= read -r -d '' file; do
     printf '%s\n' "${text}" >"${file}"
 done < <(find "${PROFILE_DIR}" -type f -print0)
 
+# The installer reads the same settings file.
+install -D -m 644 "${REPO_DIR}/mipos.conf" "${PROFILE_DIR}/airootfs/usr/share/mipos/mipos.conf"
+
 # Anything still looking like @NAME@ is a typo or a missing setting.
 if leftovers="$(grep -rnoE '@[A-Z][A-Z_]+@' "${PROFILE_DIR}")"; then
     die "Unfilled names in the profile:"$'\n'"${leftovers}"

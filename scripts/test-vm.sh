@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
-# Start a virtual machine (QEMU with UEFI firmware "OVMF") from an ISO.
-#   scripts/test-vm.sh [path/to/mipos.iso]   (default: the ISO in out/download/)
-# Also attaches a test disk out/vm/disk.qcow2 (created empty the first time).
-# Wipe the test disk:  rm out/vm/disk.qcow2
+# Start a virtual machine (QEMU with UEFI firmware "OVMF").
+#   scripts/test-vm.sh [path/to/mipos.iso]   start the ISO (default: the one in out/download/)
+#   scripts/test-vm.sh --no-iso              start the installed system on the test disk
+# The VM always has the test disk out/vm/disk.qcow2 (empty the first time).
+# New test disk: scripts/make-test-disk.sh empty|windows
 source "$(dirname "$0")/lib.sh"
 
-# Look in out/download/ (from get-iso.sh, any subfolder) and out/iso/ (local build).
 iso="${1:-}"
-if [[ -z "${iso}" ]]; then
+cdrom=()
+if [[ ${iso} == --no-iso ]]; then
+    iso=""
+elif [[ -z "${iso}" ]]; then
     iso="$(find "${OUT_DIR}/download" "${ISO_DIR}" -name '*.iso' -print -quit 2>/dev/null || true)"
 fi
-[[ -f "${iso}" ]] || die "No ISO found. Run scripts/get-iso.sh first, or give the path."
+if [[ -n ${1:-} && ${1} == --no-iso ]]; then
+    :
+else
+    [[ -f "${iso}" ]] || die "No ISO found. Run scripts/get-iso.sh first, or give the path."
+    cdrom=(-drive file="${iso}",media=cdrom,readonly=on)
+fi
 command -v qemu-system-x86_64 >/dev/null || die "Install QEMU: sudo apt install qemu-system-x86 ovmf"
 
 # UEFI firmware files have different names on different distributions.
@@ -36,13 +44,13 @@ else
     warn "No access to /dev/kvm: the VM will be very slow. Fix: sudo usermod -aG kvm \$USER, then log out and in."
 fi
 
-say "Starting the VM from $(basename "${iso}") (close the window to stop it)"
+say "Starting the VM from $([[ -n ${iso} ]] && basename "${iso}" || echo "the test disk") (close the window to stop it)"
 exec qemu-system-x86_64 \
     -machine q35 "${accel[@]}" -m "${VM_RAM_MB}" -smp "${VM_CPUS}" \
     -drive if=pflash,format=raw,readonly=on,file="${code}" \
     -drive if=pflash,format=raw,file="${vm}/OVMF_VARS.fd" \
     -drive file="${vm}/disk.qcow2",if=virtio,format=qcow2 \
-    -drive file="${iso}",media=cdrom,readonly=on \
+    "${cdrom[@]}" \
     -nic user,model=virtio-net-pci \
     -device virtio-rng-pci \
     -display gtk -vga virtio

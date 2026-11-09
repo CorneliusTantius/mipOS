@@ -1,0 +1,25 @@
+# Answers for an unattended install:   mipos-install --config answers.conf
+# Copy this file, fill it in, and run the command above.
+# Add --dry-run to only check the answers without changing anything.
+#
+# WARNING: with CONFIRM=yes this installs WITHOUT asking.
+# MODE=erase wipes DISK completely.
+# Passwords are stored as plain text here: use this for test machines only.
+
+NETWORK=auto                 # auto = use cable or the Wi-Fi below; skip = no internet
+WIFI_SSID=""                 # Wi-Fi name (empty = cable only)
+WIFI_PASSWORD=""
+UPDATE=yes                   # yes = update packages at the end (only with internet)
+LOCALE=en_US.UTF-8
+KEYMAP=us
+TIMEZONE=UTC                 # e.g. Asia/Jakarta, Europe/Berlin
+HOSTNAME=mipos
+FULLNAME="Test User"
+USERNAME=test
+PASSWORD="change-me"
+DISK=/dev/vda                # the whole disk, not a partition
+MODE=erase                   # erase = whole disk | free = largest free space
+ENCRYPT=no                   # yes | no
+LUKS_PASSWORD=""             # needed when ENCRYPT=yes
+CONFIRM=no                   # must be yes to really install
+REBOOT=no                    # yes = restart when finished

@@ -1,6 +1,9 @@
 
   Welcome to @DISTRO_NAME@ @DISTRO_VERSION@ (live system).
-  Cable network connects by itself.
-  Wi-Fi:  iwctl station wlan0 connect "Network name"
-  Power off: poweroff
+
+  Install:    mipos-install
+  Wi-Fi:      iwctl station wlan0 connect "Network name"
+              (cable connects by itself; the installer can also do Wi-Fi)
+  Volume:     alsamixer
+  Power off:  poweroff
 

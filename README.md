@@ -48,6 +48,8 @@ archiso/               The archiso profile (copied and filled in from mipos.conf
   efiboot/               Boot menu of the ISO (systemd-boot)
   airootfs/              Files copied into the live system (/etc/..., /usr/...)
     etc/pacman.d/mipos-noextract.conf   the size-trimming rules (NoExtract)
+    usr/local/bin/mipos-install         the installer
+    usr/share/mipos/answers.example     answers file for unattended installs
 scripts/               The build steps, numbered, run in order
   00-host-setup.sh       install archiso on the (Arch) build computer
   10-make-profile.sh     copy archiso/ to out/profile, fill in @NAMES@ from mipos.conf
@@ -57,7 +59,8 @@ scripts/               The build steps, numbered, run in order
   30-size-report.sh      write out/size-report.txt (what takes the space)
   build.sh               runs 00 -> 30 (what GitHub runs)
   get-iso.sh             download the newest ISO from GitHub and check it
-  test-vm.sh             start the ISO in a QEMU/UEFI virtual machine
+  test-vm.sh             start the ISO (or, with --no-iso, the installed system) in a VM
+  make-test-disk.sh      new VM test disk: "empty" or "windows" (fake Windows, for dual boot)
 reports/               Size reports kept for comparison (size-A1.txt = first build)
 .github/workflows/     The GitHub build (manual start only)
 out/                   Everything the build makes (not stored in git)
@@ -124,6 +127,49 @@ attaches an empty 20 GB test disk (`out/vm/disk.qcow2`) for the installer.
   `speaker-test -c 2 -t wav -l 1` says "front left, front right".
 - **Power off:** `poweroff`.
 
+## Installing: mipos-install
+
+On the live system, type `mipos-install`. It asks, in this order:
+
+1. **Network**: cable connects by itself; otherwise pick a Wi-Fi network, or
+   skip. Internet is only used to update the new system at the end.
+2. **Language and keyboard** (the keyboard layout applies right away).
+3. **Timezone** (region, then city).
+4. **Computer name**.
+5. **Your user** (full name, username, password). Your user may use `sudo`;
+   the root account is locked.
+6. **Disk**: which disk, then **Erase the whole disk** or **Use free space**
+   (keeps Windows; only offered when there is enough free space).
+7. **Encryption** (yes/no, and its password).
+8. **Summary**: nothing is changed until you type `yes`.
+
+How it installs: it **copies the live system** to the disk (so it works without
+internet), then sets it up as an installed system:
+
+| Part | What mipOS does |
+|---|---|
+| Partitions | Erase mode: 1 GB EFI partition + the rest for mipOS. Free-space mode: the same two partitions inside the largest free area; Windows' partitions and its EFI partition are never changed. |
+| Encryption | Optional LUKS2 (argon2id) on the mipOS partition. The EFI partition (kernel, boot menu) stays unencrypted. One password at start. |
+| File system | Btrfs, subvolumes `@ @home @var_log @var_cache @swap`, `noatime,compress=zstd:1`. |
+| Hibernation | A swap file the size of RAM in `@swap`; `systemctl hibernate` works. |
+| Boot menu | GRUB (UEFI). With Windows on the disk, the menu shows for 5 s with a Windows entry. |
+| Tuning | zram, TLP, thermald, small journal, size trimming for future packages. |
+
+Log: `/var/log/mipos-install.log` (copied to the new system). The disk space used
+is shown at the end and saved in `/var/log/mipos-install-size.txt`.
+
+Options:
+
+- `mipos-install --dry-run`: ask everything and show the summary, change nothing.
+- `mipos-install --config answers.conf`: unattended install. Start from
+  `/usr/share/mipos/answers.example`; it only installs with `CONFIRM=yes`.
+
+**Dual boot with Windows:** first, in Windows, open *Disk Management*, shrink
+the Windows partition (leave at least 13 GB + your RAM size free), and switch off
+*Fast Startup* (Control Panel → Power Options). Windows keeps the hardware clock
+in local time, Linux in UTC; if the clock is off after switching, run this once
+in Windows (admin): `reg add HKLM\System\CurrentControlSet\Control\TimeZoneInformation /v RealTimeIsUniversal /t REG_DWORD /d 1 /f`.
+
 ## Size trimming
 
 `archiso/airootfs/etc/pacman.d/mipos-noextract.conf` lists files pacman
@@ -142,6 +188,8 @@ and rebuild. On an installed system, reinstall the package afterwards
 The size report compares every build with `reports/size-A1.txt`.
 
 ## Milestones
+
+Full test checklist (A2–A4): [TESTING.md](TESTING.md).
 
 | | Goal | It works when... |
 |---|---|---|
