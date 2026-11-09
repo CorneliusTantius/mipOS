@@ -5,7 +5,11 @@
 # Wipe the test disk:  rm out/vm/disk.qcow2
 source "$(dirname "$0")/lib.sh"
 
-iso="${1:-$(ls "${OUT_DIR}"/download/*.iso "${ISO_DIR}"/*.iso 2>/dev/null | head -n1)}"
+# Look in out/download/ (from get-iso.sh, any subfolder) and out/iso/ (local build).
+iso="${1:-}"
+if [[ -z "${iso}" ]]; then
+    iso="$(find "${OUT_DIR}/download" "${ISO_DIR}" -name '*.iso' -print -quit 2>/dev/null || true)"
+fi
 [[ -f "${iso}" ]] || die "No ISO found. Run scripts/get-iso.sh first, or give the path."
 command -v qemu-system-x86_64 >/dev/null || die "Install QEMU: sudo apt install qemu-system-x86 ovmf"
 

@@ -20,5 +20,8 @@ say "Downloading build ${run_id} to ${dest}"
 gh run download "${run_id}" --name mipos-iso --dir "${dest}"
 
 say "Checking the checksum"
-(cd "${dest}" && sha256sum -c ./*.sha256)
-ls -lh "${dest}"
+# GitHub may put the files in a subfolder (e.g. iso/), so look for them.
+sum="$(find "${dest}" -name '*.iso.sha256' -print -quit)"
+[[ -n "${sum}" ]] || die "No checksum file in the download."
+(cd "$(dirname "${sum}")" && sha256sum -c "$(basename "${sum}")")
+find "${dest}" -type f -exec ls -lh {} +
