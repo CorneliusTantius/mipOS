@@ -1,0 +1,55 @@
+# M2: KDE Plasma on Wayland, trimmed.
+# Only the parts needed for a working desktop. Recommended extras are not
+# installed (--apt-recommends false), and heavy extras are blocked in mipos.conf.
+
+# Plasma core
+plasma-workspace
+plasma-desktop
+kwin-wayland
+xwayland
+qt6-wayland
+kde-cli-tools
+systemsettings
+polkit-kde-agent-1
+xdg-desktop-portal-kde
+
+# Monitors (automatic setup when plugging in), power, lock screen
+kscreen
+powerdevil
+kde-config-screenlocker
+
+# Tray: network, volume, Bluetooth
+plasma-nm
+plasma-pa
+bluedevil
+bluez
+
+# Look (Breeze is the base for our own theme at M6)
+breeze
+breeze-gtk-theme
+kde-config-gtk-style
+
+# Apps: just a terminal and a file manager
+konsole
+dolphin
+
+# Sound: PipeWire
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+libspa-0.2-bluetooth
+
+# Graphics and video decoding for Intel (hardware decoding saves battery)
+libgl1-mesa-dri
+mesa-vulkan-drivers
+intel-media-va-driver
+
+# Fonts: Inter for the interface, DejaVu as fallback, emoji
+fonts-inter
+fonts-dejavu-core
+fonts-noto-color-emoji
+
+# Login screen
+greetd
+tuigreet

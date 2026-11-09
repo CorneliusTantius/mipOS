@@ -29,6 +29,15 @@ dpkg-query --admindir="$CHROOT/var/lib/dpkg" -W --showformat='${Package} ${Versi
     > "$STAGE/casper/filesystem.manifest"
 du -sx --block-size=1 "$CHROOT" | cut -f1 > "$STAGE/casper/filesystem.size"
 
+# M3 check: no blocked package (snap, Ubuntu Pro, telemetry...) and the system says mipOS.
+BAD=""
+for p in $BLOCKED_PACKAGES $PLASMA_SKIP; do
+    awk '{print $1}' "$STAGE/casper/filesystem.manifest" | grep -qx "$p" && BAD="$BAD $p"
+done
+[ -z "$BAD" ] || die "Blocked packages ended up in the system:$BAD"
+grep -q "^ID=$DISTRO_ID\$" "$CHROOT/usr/lib/os-release" || die "Rebrand failed: os-release doesn't say ID=$DISTRO_ID"
+ok "Check passed: no snap/Pro/telemetry packages, system identifies as $DISTRO_NAME"
+
 # 3. Pack the whole system into one compressed file (squashfs).
 info "Compressing the system (a few minutes)"
 mksquashfs "$CHROOT" "$STAGE/casper/filesystem.squashfs" \

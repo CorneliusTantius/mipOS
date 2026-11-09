@@ -31,6 +31,11 @@ mipos.conf          All decisions in one file. Change things here.
 config/             Our input for live-build:
   package-lists/      which packages to install (one per line)
   hooks/              scripts that adjust the system during the build
+                        0100 language · 0200 battery/memory · 0300 rebrand
+                        0400 desktop · 9900 clean-up
+  includes.chroot/    files copied as-is into the system
+                        (e.g. usr/local/sbin/mipos-install, the installer)
+  keys/               Mozilla's apt signing key (for Firefox)
 iso/grub.cfg.in     The boot menu of the live disk
 scripts/            Numbered build steps (run them in order)
 build/              Temporary work area (created by the scripts, not in git)
@@ -45,6 +50,7 @@ Run these from this folder. Steps marked **sudo** need administrator rights.
 |---|---|---|
 | 01 | `sudo scripts/01-install-host-tools.sh` | Installs the build tools on your computer (once). |
 | 00 | `scripts/00-check-host.sh` | Checks your computer is ready. Changes nothing. |
+| 05 | `scripts/05-check-packages.sh` | Optional, no sudo: tests that all packages can be installed together and shows the size, **without building**. |
 | 10 | `sudo scripts/10-configure.sh` | Prepares `build/` from `mipos.conf` and `config/`. |
 | 20 | `sudo scripts/20-build-rootfs.sh` | Builds the system (downloads packages, 10–30 min). |
 | 30 | `sudo scripts/30-make-iso.sh` | Packs it into a bootable UEFI disk image in `out/`. |
@@ -54,6 +60,33 @@ Run these from this folder. Steps marked **sudo** need administrator rights.
 Shortcut for a full rebuild: `sudo scripts/build-all.sh`, then `scripts/40-test-vm.sh`.
 
 None of these steps touches your real disks. They only write inside this folder.
+(Only `mipos-install`, run on the live disk, writes to a disk, after you confirm.)
+
+## Installing (mipos-install)
+
+Start the live disk. It logs in to Plasma by itself. Open the app menu and pick
+**Install mipOS** (or open Konsole and run `sudo mipos-install`).
+
+The installer asks, in order: network, language and keyboard, timezone,
+computer name, your account, disk (erase all, or free space next to Windows),
+encryption, then shows a summary. **Nothing is written before you type
+`ERASE` or `INSTALL` on the summary screen.** A log is kept in
+`/var/log/mipos-install.log`.
+
+Disk layout it creates:
+
+| Part | Erase mode | Free-space mode |
+|---|---|---|
+| EFI partition (FAT, 1 GB) | new | reuses Windows' one |
+| `/boot` (ext4, 1 GB) | only with encryption | only with encryption |
+| Btrfs (rest), LUKS2 if encrypted | new | new, in the largest free area |
+
+Btrfs subvolumes: `@` (/), `@home`, `@snapshots`, `@var_log`, `@var_cache`,
+`@swap` (hibernation swap file, size of your RAM).
+
+For test machines, an unattended mode reads all answers from a file:
+`sudo mipos-install --config answers.conf` (example:
+`/usr/share/mipos/answers.example`).
 
 ## Why we pack the ISO ourselves
 
