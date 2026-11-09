@@ -1,0 +1,30 @@
+# M1: bare minimum system, like a fresh Arch install.
+# One package per line. The kernel (linux-generic) and casper are added
+# automatically by live-build, so they're not listed here.
+
+# Startup and system basics
+systemd-sysv
+dbus
+initramfs-tools
+sudo
+locales
+tzdata
+console-setup
+keyboard-configuration
+kbd
+
+# Hardware support: Intel Wi-Fi firmware and CPU fixes
+linux-firmware
+intel-microcode
+
+# Networking (wired and Wi-Fi)
+network-manager
+wpasupplicant
+iproute2
+iputils-ping
+ca-certificates
+
+# Small everyday command-line tools
+nano
+less
+bash-completion

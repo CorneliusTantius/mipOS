@@ -1,0 +1,6 @@
+# Big generated files: rebuilt from the scripts, never stored in git.
+/build/
+/out/
+*.iso
+*.qcow2
+*.fd

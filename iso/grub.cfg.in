@@ -1,0 +1,25 @@
+# Boot menu for the live disk. @NAMES@ are filled in by scripts/30-make-iso.sh.
+set timeout=5
+set default=0
+insmod all_video
+insmod gfxterm
+terminal_output gfxterm
+
+menuentry "@DISTRO_NAME@ @DISTRO_VERSION@ (live)" {
+    linux  /casper/vmlinuz boot=casper quiet ---
+    initrd /casper/initrd
+}
+
+menuentry "@DISTRO_NAME@ @DISTRO_VERSION@ (safe graphics)" {
+    linux  /casper/vmlinuz boot=casper nomodeset ---
+    initrd /casper/initrd
+}
+
+menuentry "@DISTRO_NAME@ @DISTRO_VERSION@ (debug: show all messages)" {
+    linux  /casper/vmlinuz boot=casper console=tty0 console=ttyS0,115200 ---
+    initrd /casper/initrd
+}
+
+menuentry "UEFI firmware settings" {
+    fwsetup
+}

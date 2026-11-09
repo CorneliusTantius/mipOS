@@ -1,0 +1,19 @@
+#!/bin/sh
+# Hook = a small script live-build runs INSIDE the new system during the build.
+# This one applies language, keyboard and timezone from mipos.conf.
+set -e
+. /etc/mipos-build.conf
+
+echo "mipOS hook: language $LOCALE, keyboard $KEYBOARD_LAYOUT, timezone $TIMEZONE"
+
+locale-gen "$LOCALE"
+update-locale LANG="$LOCALE"
+
+sed -i "s/^XKBLAYOUT=.*/XKBLAYOUT=\"$KEYBOARD_LAYOUT\"/" /etc/default/keyboard
+
+ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
+echo "$TIMEZONE" > /etc/timezone
+
+# Let NetworkManager manage all network connections.
+mkdir -p /etc/NetworkManager/conf.d
+printf '[keyfile]\nunmanaged-devices=none\n' > /etc/NetworkManager/conf.d/10-mipos-manage-all.conf

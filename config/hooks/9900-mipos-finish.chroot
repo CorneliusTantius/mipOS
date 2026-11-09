@@ -1,0 +1,16 @@
+#!/bin/sh
+# Last hook: tidy up so the image is small and every boot starts fresh.
+set -e
+
+# Rebuild the initrd so it includes our casper.conf (live user name).
+update-initramfs -u -k all
+
+# Remove the downloaded package files (they're not needed in the image).
+apt-get clean
+
+# machine-id = a unique ID per computer. Leave it empty so each boot creates its own.
+: > /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+
+# The copy of mipos.conf was only needed during the build.
+rm -f /etc/mipos-build.conf
