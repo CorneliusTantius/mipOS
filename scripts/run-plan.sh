@@ -5,6 +5,11 @@
 set -euo pipefail
 plan=${1:?usage: run-plan.sh <plan-file>}
 here=$(cd "$(dirname "$0")" && pwd)
-grep -vE '^[[:space:]]*(#|$)' "$plan" | awk '{print $1}' | while read -r step; do
+# A line tagged "tests-only" is skipped unless RUN_TESTS=yes (those packages
+# only exist to run other packages' test suites).
+grep -vE '^[[:space:]]*(#|$)' "$plan" | while read -r step rest; do
+    if [[ "$rest" == *tests-only* ]] && [ "${RUN_TESTS:-no}" != yes ]; then
+        echo "   skipped (tests only): $(basename "$step" .sh)"; continue
+    fi
     "$here/pkg.sh" "$step"
 done

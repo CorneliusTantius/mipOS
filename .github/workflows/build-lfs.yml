@@ -3,9 +3,11 @@
 # Only runs when you start it: Actions tab -> "Build LFS" -> "Run workflow"
 # -> pick the branch under "Use workflow from" -> Run.
 #
-# Milestone L1 (this workflow so far): the temporary system, LFS chapters 4-7.
-# The result is saved as a download ("l1-temp-system") that the next
-# milestone's job will continue from.
+# Two jobs, one after the other (each may run up to 6 hours):
+#   L1  temporary system, LFS chapters 4-7      -> download "l1-temp-system"
+#   L2  final system + lean kernel, chapters 8-10, then the slim runtime
+#       image and a size report                  -> download "mipos-runtime"
+# The size report is also shown on the run's summary page.
 
 name: Build LFS
 
@@ -81,5 +83,77 @@ jobs:
         if: always()
         with:
           name: l1-logs
+          path: logs/
+          if-no-files-found: ignore
+
+  l2-system:
+    name: "L2: final system, kernel, slim image (chapters 8-10)"
+    needs: l1-temp-system
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      RUN_TESTS: ${{ inputs.run_tests && 'yes' || 'no' }}
+    steps:
+      - name: Get the project files
+        uses: actions/checkout@v4
+      - name: Free disk space on the build server
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / /mnt
+      - name: Install build tools
+        run: sudo scripts/00-host-tools.sh --change-bin-sh
+
+      - name: Get the temporary system from L1
+        uses: actions/download-artifact@v4
+        with:
+          name: l1-temp-system
+          path: out
+      - name: Restore it into /mnt/lfs
+        run: |
+          sudo scripts/save-stage.sh --load out/l1-temp-system.tar.zst
+          rm -f out/l1-temp-system.tar.zst
+
+      - name: Final system, configuration and kernel (chapters 8-10)
+        run: sudo -E scripts/40-system.sh
+      - name: Slim runtime image and size report
+        run: |
+          sudo scripts/50-runtime-image.sh
+          sudo chown -R "$(id -u):$(id -g)" out
+          { echo '## mipOS size report'; echo '```'; cat out/size-report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the runtime image
+        uses: actions/upload-artifact@v4
+        with:
+          name: mipos-runtime
+          path: |
+            out/mipos-rootfs.squashfs
+            out/vmlinuz
+            out/kernel-config
+            out/size-report.txt
+          retention-days: 14
+          compression-level: 0
+
+      - name: Save the full build for the next milestone
+        run: |
+          sudo scripts/save-stage.sh l2-full-system
+          sudo chown -R "$(id -u):$(id -g)" out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: l2-full-system
+          path: out/l2-full-system.tar.zst
+          retention-days: 7
+          compression-level: 0
+
+      - name: Collect build logs and file lists (also when the build fails)
+        if: always()
+        run: |
+          mkdir -p logs/files
+          sudo cp -r /mnt/lfs/.mipos-logs/. logs/ 2>/dev/null || true
+          sudo cp -r /mnt/lfs/.mipos-files/. logs/files/ 2>/dev/null || true
+          sudo chown -R "$(id -u):$(id -g)" logs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: l2-logs
           path: logs/
           if-no-files-found: ignore

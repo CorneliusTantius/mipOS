@@ -5,7 +5,7 @@ source "$(dirname "$0")/lib.sh"
 need_root
 plan=${1:?usage: as-lfs.sh <plan-file>}
 # Fresh copy of the plans/overrides, in case they changed since step 10.
-cp -a "$PROJECT_DIR/lfs" "$PROJECT_DIR/scripts" "$LFS/mipos/"
+cp -a "$PROJECT_DIR/lfs" "$PROJECT_DIR/scripts" "$PROJECT_DIR/mipos.conf" "$LFS/mipos/"
 chown -R lfs:lfs "$LFS/mipos"
 
 # env -i = start with an empty environment, then load only ~/.bashrc (as the book does).

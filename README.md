@@ -48,15 +48,32 @@ same name, that file is used instead. A marker in `/mnt/lfs/.mipos-done/`
 records finished steps, so a rerun continues where it stopped. Each step's
 full output goes to `/mnt/lfs/.mipos-logs/<step>.log`.
 
-Test suites (`make check` and similar) only run when `RUN_TESTS=yes`.
+Test suites (`make check` and similar) only run when `RUN_TESTS=yes`; then
+Tcl, Expect and DejaGNU (needed only for tests) are skipped too.
+
+Small changes to a book step go in `lfs/overrides/<step>.sed` (sed edits on
+top of the book's commands), for example removing `passwd root` from Shadow
+or building only our locales in Glibc. `lfs/tarballs.tsv` names the source
+file when a package's tarball name differs from its book title.
+
+From chapter 8 on, every step records the files it installed
+(`/mnt/lfs/.mipos-files/<step>.list`). Step 50 uses these lists to leave
+build-only packages out of the runtime image (LFS has no package manager, so
+this is how we know which files belong to which package).
 
 ## Building (on GitHub)
 
 1. On GitHub, open **Actions** → **Build LFS** → **Run workflow**.
 2. Under **Use workflow from**, pick the branch. Leave "Run tests" off.
-3. Click **Run workflow**. Milestone L1 takes about 1–2 hours.
-4. When it finishes, the run page has **l1-temp-system** (the saved system,
-   kept 7 days) and **l1-logs** (one log per package; useful when something fails).
+3. Click **Run workflow**. Two jobs run one after the other: L1 (about 1–2
+   hours) and L2 (about 3–4 hours).
+4. When it finishes, the run page shows the **size report** and has:
+   - **mipos-runtime**: the slim system (`mipos-rootfs.squashfs`), the kernel
+     (`vmlinuz`), its settings and the size report (kept 14 days)
+   - **l1-temp-system**, **l2-full-system**: saved stages, so later milestones
+     can continue without rebuilding (kept 7 days)
+   - **l1-logs**, **l2-logs**: one log per package, plus the list of files
+     each package installed
 
 From the terminal: `gh workflow run build-lfs.yml --ref main`
 
@@ -71,14 +88,16 @@ The build steps, in order (the workflow runs them for you):
 | 21 | `sudo scripts/21-temp-tools.sh` | 6: temporary tools (as user `lfs`) |
 | 30 | `sudo scripts/30-chroot-tools.sh` | 7: enter the chroot, last temporary tools, clean up |
 | — | `sudo scripts/save-stage.sh l1-temp-system` | 7.15: save the temporary system |
+| 40 | `sudo scripts/40-system.sh` | 8–10: final system (~80 packages), configuration, lean kernel |
+| 50 | `sudo scripts/50-runtime-image.sh` | mipOS: slim runtime image, firmware, size report |
 
 ## Milestones
 
 | | Goal | It works when... |
 |---|---|---|
 | L1 | Temporary system (chapters 4–7) | The GitHub job finishes and **l1-temp-system** is on the run page. |
-| L2 | Base system and lean kernel (chapters 8–10), size reductions | The ISO starts in the VM and shows `mipos login:`; its size is reported. |
-| L3 | Live ISO extras: Btrfs, LUKS, GRUB tools, iwd, dialog, TLP, zram | Wi-Fi or cable works on the live system. |
+| L2 | Base system and lean kernel (chapters 8–10), slim runtime image | The GitHub run finishes and shows the size report; **mipos-runtime** is on the run page. |
+| L3 | Bootable live ISO, plus Btrfs, LUKS, GRUB tools, iwd, dialog, TLP | The ISO starts in the VM and shows `mipos login:`; Wi-Fi or cable works. |
 | L4 | `mipos-install` | It installs to a VM disk and the installed system starts. |
 
 ## Decisions

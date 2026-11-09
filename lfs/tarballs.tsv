@@ -1,0 +1,7 @@
+step	tarball
+ch8/08170-tcl.sh	tcl8.6.18-src.tar.gz
+ch8/08180-expect.sh	expect5.45.4.tar.gz
+ch8/08500-libelf.sh	elfutils-0.195.tar.bz2
+ch8/08520-sqlite.sh	sqlite-autoconf-3530400.tar.gz
+ch8/08550-flit-core.sh	flit_core-4.0.2.tar.gz
+ch8/08780-dbus.sh	dbus-1.16.2.tar.xz

@@ -16,7 +16,8 @@ export DEBIAN_FRONTEND=noninteractive
 info "Installing build tools"
 apt-get update -q
 apt-get install -y -q build-essential bison gawk texinfo m4 patch python3 \
-    wget curl xz-utils zstd bzip2 gzip tar coreutils diffutils findutils grep sed
+    wget curl xz-utils zstd bzip2 gzip tar coreutils diffutils findutils grep sed \
+    squashfs-tools rsync
 
 info "Pointing /bin/sh to bash"
 ln -sf bash /bin/sh

@@ -28,6 +28,15 @@ while read -r url; do
 done < "$BOOK/wget-list"
 md5sum -c "$BOOK/md5sums" --quiet || die "A downloaded file is damaged (MD5 sum doesn't match)."
 ok "All $(wc -l < "$BOOK/md5sums") source files downloaded and checked"
+
+# Extra files mipOS needs beyond the book (lfs/extra-sources.tsv), checked by SHA-256.
+info "Downloading extra source files"
+tail -n +2 "$PROJECT_DIR/lfs/extra-sources.tsv" | while IFS=$'\t' read -r file url sha; do
+    if [ -f "$file" ] && echo "$sha  $file" | sha256sum -c --quiet - 2>/dev/null; then continue; fi
+    wget -q --tries=3 --timeout=60 "$url" -O "$file" || die "Could not download $file"
+    echo "$sha  $file" | sha256sum -c --quiet - || die "$file is damaged (SHA-256 doesn't match)."
+done
+ok "Extra source files downloaded and checked"
 cd "$PROJECT_DIR"
 
 # --- Chapter 4: layout, user, environment ------------------------------
