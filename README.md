@@ -87,6 +87,10 @@ All in `mipos.conf`. Changed from the original plan, by choice:
   like Omarchy's) instead of Calamares. It can erase a whole disk or use free
   space next to Windows, asks whether to encrypt the disk (LUKS2), and sets up
   a swap file for hibernation. Hibernation only works with Secure Boot off.
+  Its steps, in order: **network** (cable is automatic, otherwise pick a Wi-Fi
+  network or skip), language and keyboard, timezone, computer name, your user and
+  password, disk, encryption, a summary to check everything, then install.
+  Your user gets admin rights through `sudo`; the root account stays locked.
 - **GRUB is the bootloader** (Limine can't read Btrfs, and GRUB lets you boot
   into snapshots). Limine may be added later as an option.
 - **Theme is our own**, built on KDE's Breeze, with Papirus Dark icons, Inter
