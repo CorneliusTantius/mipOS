@@ -1,0 +1,7 @@
+# Chapter 5: the cross-toolchain (built as user lfs on the build computer)
+# A cross-toolchain is a compiler that runs here but makes programs for the new system.
+ch5/05020-binutils-pass1.sh	# 5.2. Binutils-2.47 - Pass 1
+ch5/05030-gcc-pass1.sh	# 5.3. GCC-16.2.0 - Pass 1
+ch5/05040-linux-headers.sh	# 5.4. Linux-7.1.8 API Headers
+ch5/05050-glibc.sh	# 5.5. Glibc-2.44
+ch5/05060-libstdcpp.sh	# 5.6. Libstdc++ from GCC-16.2.0

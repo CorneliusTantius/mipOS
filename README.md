@@ -1,176 +1,106 @@
 # mipOS
 
-mipOS is a personal desktop Linux distribution built on **Ubuntu 26.04 LTS**.
-It starts almost empty (like a fresh Arch install) and adds only what we choose:
-KDE Plasma on Wayland, a dark custom theme, and a Btrfs disk with snapshots.
+mipOS is a personal Linux system built **from source** by following
+[Linux From Scratch](https://www.linuxfromscratch.org/) (LFS), version
+**13.1-systemd**. Every program is compiled from its source code. Each step of
+the book is a script in this repo, so a rebuild repeats exactly.
 
-It's a **remix**: we don't compile programs ourselves. We pick ready-made
-Ubuntu packages and put them together our own way.
+It's a learning project: text-only (no desktop), systemd, a live ISO with a
+small text installer. There is no package manager, so updates mean
+recompiling (the scripts make that repeatable).
 
 ## Words used in this project
 
 | Word | Meaning |
 |---|---|
-| **live disk / ISO** | A disk image file (`.iso`) you can start a computer from without installing anything. |
-| **live-build** | The tool that assembles a Linux system from Ubuntu packages. |
-| **chroot** | A folder that holds a complete Linux system while we build it (`build/chroot/`). |
-| **package** | One piece of software in Ubuntu's format (`.deb`), installed with `apt`. |
-| **hook** | A small script that runs inside the new system during the build, to change settings. |
-| **kernel** | The core of the operating system that talks to the hardware. |
-| **initrd** | A small starter system that loads first and then finds and starts the real one. |
-| **casper** | Ubuntu's program that makes a live disk start (it lives in the initrd). |
-| **squashfs** | One compressed file holding the whole system, stored on the live disk. |
-| **bootloader** | The program that starts the operating system. We use **GRUB**. |
-| **UEFI** | The modern firmware built into PCs that runs the bootloader. |
-| **VM** | Virtual machine: a pretend computer running in a window. We use **QEMU/KVM**. |
+| **LFS** | Linux From Scratch: a book that explains how to build a Linux system from source code, step by step. |
+| **source code / tarball** | A program's code, downloaded as a compressed file (`.tar.xz`). |
+| **compile** | Turn source code into a program the computer can run. |
+| **toolchain** | The compiler (GCC), linker (Binutils) and C library (Glibc): the tools that build everything else. |
+| **cross-toolchain** | A toolchain that runs on the build computer but makes programs for the new system (LFS chapter 5). |
+| **chroot** | Run programs with a folder (here `/mnt/lfs`) as their root `/`, so they only see the new system. |
+| **host** | The computer doing the building (here: GitHub's Ubuntu servers). |
+| **init system** | The first program the kernel starts. We use **systemd**. |
+| **bootloader** | The program that starts the operating system. We use **GRUB** (UEFI). |
+| **stage** | A saved copy of the half-built system, so the next step can continue from it. |
 
 ## Folders
 
 ```
-mipos.conf          All decisions in one file. Change things here.
-config/             Our input for live-build:
-  package-lists/      which packages to install (one per line)
-  hooks/              scripts that adjust the system during the build
-                        0100 language · 0200 battery/memory · 0300 rebrand
-                        0400 desktop · 9900 clean-up
-  includes.chroot/    files copied as-is into the system
-                        (e.g. usr/local/sbin/mipos-install, the installer)
-  keys/               Mozilla's apt signing key (for Firefox)
-iso/grub.cfg.in     The boot menu of the live disk
-scripts/            Numbered build steps (run them in order)
-build/              Temporary work area (created by the scripts, not in git)
-out/                Finished disk images and logs (not in git)
+mipos.conf          All decisions in one file.
+lfs/book/           The book's commands, one script per section (generated, don't edit)
+  index.tsv           every section, with its package and version
+  wget-list, md5sums  the source files and their checksums
+  LICENSE             the book's commands are extracted under the MIT License
+lfs/overrides/      Our changes to book steps (same file name as in lfs/book/)
+lfs/plan/           Which steps run, in which order, per chapter
+scripts/            The build steps (numbered) and helpers
+tools/extract-book.py  Turns the LFS book (HTML) into lfs/book/
+.github/workflows/  The GitHub build
 ```
 
-## How to build
+## How a step runs
 
-Run these from this folder. Steps marked **sudo** need administrator rights.
+`scripts/pkg.sh ch5/05020-binutils-pass1.sh` does what the book's "general
+instructions" say: unpack the package's tarball, go into its folder, run the
+book's commands, delete the folder. If `lfs/overrides/` has a file with the
+same name, that file is used instead. A marker in `/mnt/lfs/.mipos-done/`
+records finished steps, so a rerun continues where it stopped. Each step's
+full output goes to `/mnt/lfs/.mipos-logs/<step>.log`.
 
-| Step | Command | What it does |
+Test suites (`make check` and similar) only run when `RUN_TESTS=yes`.
+
+## Building (on GitHub)
+
+1. On GitHub, open **Actions** → **Build LFS** → **Run workflow**.
+2. Under **Use workflow from**, pick the branch. Leave "Run tests" off.
+3. Click **Run workflow**. Milestone L1 takes about 1–2 hours.
+4. When it finishes, the run page has **l1-temp-system** (the saved system,
+   kept 7 days) and **l1-logs** (one log per package; useful when something fails).
+
+From the terminal: `gh workflow run build-lfs.yml --ref main`
+
+The build steps, in order (the workflow runs them for you):
+
+| Step | Script | LFS chapter |
 |---|---|---|
-| 01 | `sudo scripts/01-install-host-tools.sh` | Installs the build tools on your computer (once). |
-| 00 | `scripts/00-check-host.sh` | Checks your computer is ready. Changes nothing. |
-| 05 | `scripts/05-check-packages.sh` | Optional, no sudo: tests that all packages can be installed together and shows the size, **without building**. |
-| 10 | `sudo scripts/10-configure.sh` | Prepares `build/` from `mipos.conf` and `config/`. |
-| 20 | `sudo scripts/20-build-rootfs.sh` | Builds the system (downloads packages, 10–30 min). |
-| 30 | `sudo scripts/30-make-iso.sh` | Packs it into a bootable UEFI disk image in `out/`. |
-| 40 | `scripts/40-test-vm.sh` | Starts the image in a VM. **No sudo.** |
-| 90 | `sudo scripts/90-clean.sh` | Deletes `build/` so you can build again. |
-
-Shortcut for a full rebuild: `sudo scripts/build-all.sh`, then `scripts/40-test-vm.sh`.
-
-None of these steps touches your real disks. They only write inside this folder.
-(Only `mipos-install`, run on the live disk, writes to a disk, after you confirm.)
-
-## Installing (mipos-install)
-
-Start the live disk. It logs in to Plasma by itself. Open the app menu and pick
-**Install mipOS** (or open Konsole and run `sudo mipos-install`).
-
-The installer asks, in order: network, language and keyboard, timezone,
-computer name, your account, disk (erase all, or free space next to Windows),
-encryption, then shows a summary. **Nothing is written before you type
-`ERASE` or `INSTALL` on the summary screen.** A log is kept in
-`/var/log/mipos-install.log`.
-
-Disk layout it creates:
-
-| Part | Erase mode | Free-space mode |
-|---|---|---|
-| EFI partition (FAT, 1 GB) | new | reuses Windows' one |
-| `/boot` (ext4, 1 GB) | only with encryption | only with encryption |
-| Btrfs (rest), LUKS2 if encrypted | new | new, in the largest free area |
-
-Btrfs subvolumes: `@` (/), `@home`, `@snapshots`, `@var_log`, `@var_cache`,
-`@swap` (hibernation swap file, size of your RAM).
-
-For test machines, an unattended mode reads all answers from a file:
-`sudo mipos-install --config answers.conf` (example:
-`/usr/share/mipos/answers.example`).
-
-## Why we pack the ISO ourselves
-
-Ubuntu's version of live-build only builds the system files. It can't make an
-image that starts on UEFI PCs (Ubuntu uses other tools for that step).
-So `30-make-iso.sh` does it with GRUB's `grub-mkrescue`.
+| 00 | `sudo scripts/00-host-tools.sh --change-bin-sh` | 2: build tools; points `/bin/sh` to bash (the book needs it) |
+| 01 | `scripts/01-host-check.sh` | 2.2: the book's version check |
+| 10 | `sudo scripts/10-prepare.sh` | 3–4: download and check sources, folder layout, `lfs` user |
+| 20 | `sudo scripts/20-cross-toolchain.sh` | 5: cross-toolchain (as user `lfs`) |
+| 21 | `sudo scripts/21-temp-tools.sh` | 6: temporary tools (as user `lfs`) |
+| 30 | `sudo scripts/30-chroot-tools.sh` | 7: enter the chroot, last temporary tools, clean up |
+| — | `sudo scripts/save-stage.sh l1-temp-system` | 7.15: save the temporary system |
 
 ## Milestones
 
 | | Goal | It works when... |
 |---|---|---|
-| M1 | Bare live disk | The VM starts the image and shows a text login prompt. |
-| M2 | KDE Plasma on Wayland | The VM shows the tuigreet login screen and the Plasma desktop opens. |
-| M3 | Canonical parts removed | snap, Ubuntu Pro and telemetry packages are gone, and the system says "mipOS". |
-| M4 | Installer | The mipOS text installer installs to a Btrfs disk with subvolumes (whole disk or next to Windows, optional encryption), and the installed system starts. |
-| M5 | Snapshots | snapper can create, list and roll back snapshots. |
-| M6 | Look and feel | The dark mipOS theme is applied and survives a rebuild. |
+| L1 | Temporary system (chapters 4–7) | The GitHub job finishes and **l1-temp-system** is on the run page. |
+| L2 | Base system and kernel (chapters 8–10) | The ISO starts in the VM and shows `mipos login:`. |
+| L3 | Live ISO extras: Btrfs, LUKS, GRUB tools, iwd, dialog, TLP, zram | Wi-Fi or cable works on the live system. |
+| L4 | `mipos-install` | It installs to a VM disk and the installed system starts. |
 
 ## Decisions
 
-All in `mipos.conf`. Changed from the original plan, by choice:
+All in `mipos.conf`: LFS 13.1-systemd, text only, iwd + systemd-networkd,
+installer in bash with `dialog` menus, Btrfs with subvolumes (no snapshots),
+optional LUKS2, whole disk or free space next to Windows, hibernation swap
+file, GRUB on UEFI, lean kernel for Intel PCs and QEMU, zram, TLP, small logs,
+no docs or man pages.
 
-- **No snap.** Apps come from Flatpak/Flathub, Firefox from Mozilla's apt repo.
-  snap and the Ubuntu Pro, telemetry and crash-report packages are *blocked*
-  (apt will refuse to install them).
-- **Login screen: greetd + tuigreet** (a dark text login) instead of SDDM.
-- **KDE Plasma, trimmed:** kept for its automatic monitor handling, with file
-  indexing (Baloo), mail/calendar services (Akonadi), KDE Connect, Discover and
-  blur effects left out.
-- **Installer: our own text installer** (`mipos-install`, bash + gum menus,
-  like Omarchy's) instead of Calamares. It can erase a whole disk or use free
-  space next to Windows, asks whether to encrypt the disk (LUKS2), and sets up
-  a swap file for hibernation. Hibernation only works with Secure Boot off.
-  Its steps, in order: **network** (cable is automatic, otherwise pick a Wi-Fi
-  network or skip), language and keyboard, timezone, computer name, your user and
-  password, disk, encryption, a summary to check everything, then install.
-  Your user gets admin rights through `sudo`; the root account stays locked.
-- **GRUB is the bootloader** (Limine can't read Btrfs, and GRUB lets you boot
-  into snapshots). Limine may be added later as an option.
-- **Theme is our own**, built on KDE's Breeze, with Papirus Dark icons, Inter
-  font, graphite accent, and no dock.
+**Secure Boot must be off**: our GRUB and kernel aren't signed by Microsoft.
 
-## Lightweight and battery settings
+## Updating to a new LFS book
 
-Each one can be switched off in `mipos.conf`.
-
-| Setting | What it does | Why |
-|---|---|---|
-| Kernel only, no headers | `linux-image-generic` instead of `linux-generic` | Saves ~100 MB. Headers are only for compiling drivers. |
-| Small firmware set | Intel, Realtek, MediaTek, Qualcomm Wi-Fi, AMD graphics, Intel audio | ~250 MB instead of ~620 MB. |
-| No recommended extras | apt installs only what we list | Stops packages from dragging in optional extras. |
-| No docs, man pages, translations | dpkg skips these files | Saves disk space. Copyright files stay (required). |
-| No package indexes in the image | `/var/lib/apt/lists` emptied | Smaller image. Run `sudo apt update` before installing anything. |
-| zram | Compressed swap in RAM | Low-RAM PCs stay fast; no swap writes to the disk. |
-| dbus-broker | Lighter, faster D-Bus | Less CPU for messages between programs. |
-| TLP + thermald | CPU, Wi-Fi, USB and sound power saving; Intel heat control | Longer battery life. |
-| Small system log | Capped at 50 MB | Fewer disk writes. |
-| Masked timers | No twice-a-day update checks, no man-db and disk-check timers, no waiting for network at boot | Fewer wake-ups, faster boot. **Update by hand weekly:** `sudo apt update && sudo apt upgrade` |
-| Kernel options | `nowatchdog`, `zswap.enabled=0`, quiet boot | Fewer CPU wake-ups. |
-| Btrfs `noatime,compress=zstd:1` (M4) | No write on every file read; light compression | Fewer disk writes, smaller files. |
-| Initrd with only needed drivers (M4) | `MODULES=dep` on the installed system | Faster boot. |
+1. Download the new `LFS-BOOK-<version>-NOCHUNKS.html`, `wget-list` and
+   `md5sums` from the LFS site.
+2. `python3 tools/extract-book.py LFS-BOOK-<version>-NOCHUNKS.html lfs/book`
+3. Copy `wget-list` and `md5sums` into `lfs/book/`, update `LFS_VERSION` and
+   `LFS_MIRROR` in `mipos.conf`, and check `lfs/overrides/` still fits.
 
 ## Legal
 
-mipOS is not affiliated with Canonical or Ubuntu. Ubuntu's trademark rules ask that
-modified versions use their own name and logos, which is why it's called mipOS.
-It uses no Apple names, logos or wallpapers.
-
-## Building on GitHub (GitHub Actions)
-
-GitHub can build the ISO on its own servers
-([.github/workflows/build-iso.yml](.github/workflows/build-iso.yml)).
-It only runs when you start it:
-
-1. On GitHub, open the **Actions** tab and pick **Build ISO** on the left.
-2. Click **Run workflow**.
-3. Under **Use workflow from**, choose the branch to build.
-4. Optional: tick **Publish a GitHub Release** and fill in a version like `v0.1`.
-5. Click the green **Run workflow** button.
-
-When it finishes, open the run and download **mipos-iso** at the bottom (kept
-14 days). If it fails, download **build-log** from the same page.
-
-From the terminal instead:
-```bash
-gh workflow run build-iso.yml --ref main
-```
+The commands in `lfs/book/` come from the LFS book (© Gerard Beekmans), whose
+computer instructions may be extracted under the MIT License (see
+`lfs/book/LICENSE`).

@@ -1,0 +1,145 @@
+chapter	number	id	script	package	version	title
+2	2	ch-partitioning-hostreqs	ch2/02020-hostreqs.sh			2.2. Host System Requirements
+2	5	ch-partitioning-creatingfilesystem	ch2/02050-creatingfilesystem.sh			2.5. Creating a File System on the Partition
+2	6	ch-partitioning-aboutlfs	ch2/02060-aboutlfs.sh			2.6. Setting the $LFS Variable and the Umask
+2	7	ch-partitioning-mounting	ch2/02070-mounting.sh			2.7. Mounting the New Partition
+3	1	ch-materials-introduction	ch3/03010-introduction.sh			3.1. Introduction
+4	2	ch-tools-creatingminlayout	ch4/04020-creatingminlayout.sh			4.2. Creating a Limited Directory Layout in the LFS Filesystem
+4	3	ch-preps-addinguser	ch4/04030-addinguser.sh			4.3. Adding the LFS User
+4	4	ch-preps-settingenviron	ch4/04040-settingenviron.sh			4.4. Setting Up the Environment
+0	0	ch-tools-generalinstructions	ch0/00000-generalinstructions.sh			General Compilation Instructions
+5	2	ch-tools-binutils-pass1	ch5/05020-binutils-pass1.sh	binutils	2.47	5.2. Binutils-2.47 - Pass 1
+5	3	ch-tools-gcc-pass1	ch5/05030-gcc-pass1.sh	gcc	16.2.0	5.3. GCC-16.2.0 - Pass 1
+5	4	ch-tools-linux-headers	ch5/05040-linux-headers.sh	linux	7.1.8	5.4. Linux-7.1.8 API Headers
+5	5	ch-tools-glibc	ch5/05050-glibc.sh	glibc	2.44	5.5. Glibc-2.44
+5	6	ch-tools-libstdcpp	ch5/05060-libstdcpp.sh	gcc	16.2.0	5.6. Libstdc++ from GCC-16.2.0
+6	2	ch-tools-m4	ch6/06020-m4.sh	m4	1.4.21	6.2. M4-1.4.21
+6	3	ch-tools-ncurses	ch6/06030-ncurses.sh	ncurses	6.6	6.3. Ncurses-6.6
+6	4	ch-tools-bash	ch6/06040-bash.sh	bash	5.3	6.4. Bash-5.3
+6	5	ch-tools-coreutils	ch6/06050-coreutils.sh	coreutils	9.11	6.5. Coreutils-9.11
+6	6	ch-tools-diffutils	ch6/06060-diffutils.sh	diffutils	3.12	6.6. Diffutils-3.12
+6	7	ch-tools-file	ch6/06070-file.sh	file	5.48	6.7. File-5.48
+6	8	ch-tools-findutils	ch6/06080-findutils.sh	findutils	4.11.0	6.8. Findutils-4.11.0
+6	9	ch-tools-gawk	ch6/06090-gawk.sh	gawk	5.4.1	6.9. Gawk-5.4.1
+6	10	ch-tools-grep	ch6/06100-grep.sh	grep	3.12	6.10. Grep-3.12
+6	11	ch-tools-gzip	ch6/06110-gzip.sh	gzip	1.14	6.11. Gzip-1.14
+6	12	ch-tools-make	ch6/06120-make.sh	make	4.4.1	6.12. Make-4.4.1
+6	13	ch-tools-patch	ch6/06130-patch.sh	patch	2.8	6.13. Patch-2.8
+6	14	ch-tools-sed	ch6/06140-sed.sh	sed	4.10	6.14. Sed-4.10
+6	15	ch-tools-tar	ch6/06150-tar.sh	tar	1.35	6.15. Tar-1.35
+6	16	ch-tools-xz	ch6/06160-xz.sh	xz	5.8.3	6.16. Xz-5.8.3
+6	17	ch-tools-binutils-pass2	ch6/06170-binutils-pass2.sh	binutils	2.47	6.17. Binutils-2.47 - Pass 2
+6	18	ch-tools-gcc-pass2	ch6/06180-gcc-pass2.sh	gcc	16.2.0	6.18. GCC-16.2.0 - Pass 2
+7	2	ch-tools-changingowner	ch7/07020-changingowner.sh			7.2. Changing Ownership
+7	3	ch-tools-kernfs	ch7/07030-kernfs.sh			7.3. Preparing Virtual Kernel File Systems
+7	3	ch-tools-bindmount	ch7/07031-bindmount.sh			7.3.1. Mounting and Populating /dev
+7	3	ch-tools-kernfsmount	ch7/07032-kernfsmount.sh			7.3.2. Mounting Virtual Kernel File Systems
+7	4	ch-tools-chroot	ch7/07040-chroot.sh			7.4. Entering the Chroot Environment
+7	5	ch-tools-creatingdirs	ch7/07050-creatingdirs.sh			7.5. Creating Directories
+7	6	ch-tools-createfiles	ch7/07060-createfiles.sh			7.6. Creating Essential Files and Symlinks
+7	7	ch-tools-gettext	ch7/07070-gettext.sh	gettext	1.0	7.7. Gettext-1.0
+7	8	ch-tools-bison	ch7/07080-bison.sh	bison	3.8.2	7.8. Bison-3.8.2
+7	9	ch-tools-perl	ch7/07090-perl.sh	perl	5.44.0	7.9. Perl-5.44.0
+7	10	ch-tools-zlib	ch7/07100-zlib.sh	zlib	1.3.2	7.10. Zlib-1.3.2
+7	11	ch-tools-mpdecimal	ch7/07110-mpdecimal.sh	mpdecimal	4.0.1	7.11. mpdecimal-4.0.1
+7	12	ch-tools-Python	ch7/07120-python.sh	python	3.14.7	7.12. Python-3.14.7
+7	13	ch-tools-texinfo	ch7/07130-texinfo.sh	texinfo	7.3	7.13. Texinfo-7.3
+7	14	ch-tools-util-linux	ch7/07140-util-linux.sh	util-linux	2.42.2	7.14. Util-linux-2.42.2
+7	15	ch-tools-cleanup	ch7/07150-cleanup.sh			7.15. Cleaning up and Saving the Temporary System
+8	2	ch-system-pkgmgt	ch8/08020-pkgmgt.sh			8.2. Package Management
+8	3	ch-system-man-pages	ch8/08030-man-pages.sh	man-pages	6.18	8.3. Man-pages-6.18
+8	4	ch-system-iana-etc	ch8/08040-iana-etc.sh	iana-etc	20260805	8.4. Iana-Etc-20260805
+8	5	ch-system-glibc	ch8/08050-glibc.sh	glibc	2.44	8.5. Glibc-2.44
+8	6	ch-system-zlib	ch8/08060-zlib.sh	zlib	1.3.2	8.6. Zlib-1.3.2
+8	7	ch-system-bzip2	ch8/08070-bzip2.sh	bzip2	1.0.8	8.7. Bzip2-1.0.8
+8	8	ch-system-xz	ch8/08080-xz.sh	xz	5.8.3	8.8. Xz-5.8.3
+8	9	ch-system-lz4	ch8/08090-lz4.sh	lz4	1.10.0	8.9. Lz4-1.10.0
+8	10	ch-system-zstd	ch8/08100-zstd.sh	zstd	1.5.7	8.10. Zstd-1.5.7
+8	11	ch-system-file	ch8/08110-file.sh	file	5.48	8.11. File-5.48
+8	12	ch-system-readline	ch8/08120-readline.sh	readline	8.3	8.12. Readline-8.3
+8	13	ch-system-pcre2	ch8/08130-pcre2.sh	pcre2	10.47	8.13. Pcre2-10.47
+8	14	ch-system-m4	ch8/08140-m4.sh	m4	1.4.21	8.14. M4-1.4.21
+8	15	ch-system-bc	ch8/08150-bc.sh	bc	7.0.3	8.15. Bc-7.0.3
+8	16	ch-system-flex	ch8/08160-flex.sh	flex	2.6.4	8.16. Flex-2.6.4
+8	17	ch-system-tcl	ch8/08170-tcl.sh	tcl	8.6.18	8.17. Tcl-8.6.18
+8	18	ch-system-expect	ch8/08180-expect.sh	expect	5.45.4	8.18. Expect-5.45.4
+8	19	ch-system-dejagnu	ch8/08190-dejagnu.sh	dejagnu	1.6.3	8.19. DejaGNU-1.6.3
+8	20	ch-system-ninja	ch8/08200-ninja.sh	ninja	1.13.2	8.20. Ninja-1.13.2
+8	21	ch-system-pkgconf	ch8/08210-pkgconf.sh	pkgconf	3.0.5	8.21. Pkgconf-3.0.5
+8	22	ch-system-binutils	ch8/08220-binutils.sh	binutils	2.47	8.22. Binutils-2.47
+8	23	ch-system-gmp	ch8/08230-gmp.sh	gmp	6.3.0	8.23. GMP-6.3.0
+8	24	ch-system-mpfr	ch8/08240-mpfr.sh	mpfr	4.2.2	8.24. MPFR-4.2.2
+8	25	ch-system-mpc	ch8/08250-mpc.sh	mpc	1.4.1	8.25. MPC-1.4.1
+8	26	ch-system-attr	ch8/08260-attr.sh	attr	2.6.0	8.26. Attr-2.6.0
+8	27	ch-system-acl	ch8/08270-acl.sh	acl	2.4.0	8.27. Acl-2.4.0
+8	28	ch-system-libcap	ch8/08280-libcap.sh	libcap	2.78	8.28. Libcap-2.78
+8	29	ch-system-libxcrypt	ch8/08290-libxcrypt.sh	libxcrypt	4.5.2	8.29. Libxcrypt-4.5.2
+8	30	ch-system-shadow	ch8/08300-shadow.sh	shadow	4.20.2	8.30. Shadow-4.20.2
+8	31	ch-system-gawk	ch8/08310-gawk.sh	gawk	5.4.1	8.31. Gawk-5.4.1
+8	32	ch-system-gcc	ch8/08320-gcc.sh	gcc	16.2.0	8.32. GCC-16.2.0
+8	33	ch-system-ncurses	ch8/08330-ncurses.sh	ncurses	6.6	8.33. Ncurses-6.6
+8	34	ch-system-sed	ch8/08340-sed.sh	sed	4.10	8.34. Sed-4.10
+8	35	ch-system-psmisc	ch8/08350-psmisc.sh	psmisc	23.7	8.35. Psmisc-23.7
+8	36	ch-system-gettext	ch8/08360-gettext.sh	gettext	1.0	8.36. Gettext-1.0
+8	37	ch-system-bison	ch8/08370-bison.sh	bison	3.8.2	8.37. Bison-3.8.2
+8	38	ch-system-grep	ch8/08380-grep.sh	grep	3.12	8.38. Grep-3.12
+8	39	ch-system-bash	ch8/08390-bash.sh	bash	5.3	8.39. Bash-5.3
+8	40	ch-system-libtool	ch8/08400-libtool.sh	libtool	2.6.2	8.40. Libtool-2.6.2
+8	41	ch-system-gdbm	ch8/08410-gdbm.sh	gdbm	1.26	8.41. GDBM-1.26
+8	42	ch-system-gperf	ch8/08420-gperf.sh	gperf	3.3	8.42. Gperf-3.3
+8	43	ch-system-expat	ch8/08430-expat.sh	expat	2.8.3	8.43. Expat-2.8.3
+8	44	ch-system-inetutils	ch8/08440-inetutils.sh	inetutils	2.8	8.44. Inetutils-2.8
+8	45	ch-system-less	ch8/08450-less.sh	less	704	8.45. Less-704
+8	46	ch-system-perl	ch8/08460-perl.sh	perl	5.44.0	8.46. Perl-5.44.0
+8	47	ch-system-autoconf	ch8/08470-autoconf.sh	autoconf	2.73	8.47. Autoconf-2.73
+8	48	ch-system-automake	ch8/08480-automake.sh	automake	1.18.1	8.48. Automake-1.18.1
+8	49	ch-system-openssl	ch8/08490-openssl.sh	openssl	4.0.1	8.49. OpenSSL-4.0.1
+8	50	ch-system-libelf	ch8/08500-libelf.sh			8.50. Libelf from Elfutils-0.195
+8	51	ch-system-libffi	ch8/08510-libffi.sh	libffi	3.8.0	8.51. Libffi-3.8.0
+8	52	ch-system-sqlite	ch8/08520-sqlite.sh	sqlite	3530400	8.52. Sqlite-3530400
+8	53	ch-system-mpdecimal	ch8/08530-mpdecimal.sh	mpdecimal	4.0.1	8.53. mpdecimal-4.0.1
+8	54	ch-system-Python	ch8/08540-python.sh	python	3.14.7	8.54. Python-3.14.7
+8	55	ch-system-flit-core	ch8/08550-flit-core.sh	flit-core	4.0.2	8.55. Flit-Core-4.0.2
+8	56	ch-system-packaging	ch8/08560-packaging.sh	packaging	26.3	8.56. Packaging-26.3
+8	57	ch-system-wheel	ch8/08570-wheel.sh	wheel	0.48.0	8.57. Wheel-0.48.0
+8	58	ch-system-setuptools	ch8/08580-setuptools.sh	setuptools	84.0.0	8.58. Setuptools-84.0.0
+8	59	ch-system-meson	ch8/08590-meson.sh	meson	1.12.0	8.59. Meson-1.12.0
+8	60	ch-system-kmod	ch8/08600-kmod.sh	kmod	34.2	8.60. Kmod-34.2
+8	61	ch-system-coreutils	ch8/08610-coreutils.sh	coreutils	9.11	8.61. Coreutils-9.11
+8	62	ch-system-diffutils	ch8/08620-diffutils.sh	diffutils	3.12	8.62. Diffutils-3.12
+8	63	ch-system-findutils	ch8/08630-findutils.sh	findutils	4.11.0	8.63. Findutils-4.11.0
+8	64	ch-system-groff	ch8/08640-groff.sh	groff	1.24.1	8.64. Groff-1.24.1
+8	65	ch-system-grub	ch8/08650-grub.sh	grub	2.14	8.65. GRUB-2.14
+8	66	ch-system-gzip	ch8/08660-gzip.sh	gzip	1.14	8.66. Gzip-1.14
+8	67	ch-system-iproute2	ch8/08670-iproute2.sh	iproute2	7.1.0	8.67. IPRoute2-7.1.0
+8	68	ch-system-kbd	ch8/08680-kbd.sh	kbd	2.10.0	8.68. Kbd-2.10.0
+8	69	ch-system-libpipeline	ch8/08690-libpipeline.sh	libpipeline	1.5.8	8.69. Libpipeline-1.5.8
+8	70	ch-system-make	ch8/08700-make.sh	make	4.4.1	8.70. Make-4.4.1
+8	71	ch-system-patch	ch8/08710-patch.sh	patch	2.8	8.71. Patch-2.8
+8	72	ch-system-tar	ch8/08720-tar.sh	tar	1.35	8.72. Tar-1.35
+8	73	ch-system-texinfo	ch8/08730-texinfo.sh	texinfo	7.3	8.73. Texinfo-7.3
+8	74	ch-system-vim	ch8/08740-vim.sh	vim	9.2.1025	8.74. Vim-9.2.1025
+8	75	ch-system-markupsafe	ch8/08750-markupsafe.sh	markupsafe	3.0.3	8.75. MarkupSafe-3.0.3
+8	76	ch-system-jinja2	ch8/08760-jinja2.sh	jinja2	3.1.6	8.76. Jinja2-3.1.6
+8	77	ch-system-systemd	ch8/08770-systemd.sh	systemd	261.2	8.77. Systemd-261.2
+8	78	ch-system-dbus	ch8/08780-dbus.sh	d-bus	1.16.2	8.78. D-Bus-1.16.2
+8	79	ch-system-man-db	ch8/08790-man-db.sh	man-db	2.13.1	8.79. Man-DB-2.13.1
+8	80	ch-system-procps	ch8/08800-procps.sh	procps-ng	4.0.7	8.80. Procps-ng-4.0.7
+8	81	ch-system-util-linux	ch8/08810-util-linux.sh	util-linux	2.42.2	8.81. Util-linux-2.42.2
+8	82	ch-system-e2fsprogs	ch8/08820-e2fsprogs.sh	e2fsprogs	1.47.4	8.82. E2fsprogs-1.47.4
+8	84	ch-system-stripping	ch8/08840-stripping.sh			8.84. Stripping
+8	85	ch-system-cleanup	ch8/08850-cleanup.sh			8.85. Cleaning Up
+9	2	ch-config-network	ch9/09020-network.sh			9.2. General Network Configuration
+9	2	ch-config-hostname	ch9/09023-hostname.sh			9.2.3. Configuring the system hostname
+9	2	ch-config-hosts	ch9/09024-hosts.sh			9.2.4. Customizing the /etc/hosts File
+9	4	ch-config-symlinks	ch9/09040-symlinks.sh			9.4. Managing Devices
+9	5	ch-config-clock	ch9/09050-clock.sh			9.5. Configuring the System Clock
+9	6	ch-config-console	ch9/09060-console.sh			9.6. Configuring the Linux Console
+9	7	ch-config-locale	ch9/09070-locale.sh			9.7. Configuring the System Locale
+9	8	ch-config-inputrc	ch9/09080-inputrc.sh			9.8. Creating the /etc/inputrc File
+9	10	ch-config-systemd-custom	ch9/09100-systemd-custom.sh			9.10. Systemd Usage and Configuration
+10	2	ch-bootable-fstab	ch10/10020-fstab.sh			10.2. Creating the /etc/fstab File
+10	3	ch-bootable-kernel	ch10/10030-kernel.sh	linux	7.1.8	10.3. Linux-7.1.8
+10	4	ch-bootable-grub	ch10/10040-grub.sh			10.4. Using GRUB to Set Up the Boot Process
+11	1	ch-finish-theend	ch11/11010-theend.sh			11.1. The End
+11	3	ch-finish-reboot	ch11/11030-reboot.sh			11.3. Rebooting the System

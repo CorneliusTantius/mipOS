@@ -1,7 +1,7 @@
-# Big generated files: rebuilt from the scripts, never stored in git.
-/build/
+# Generated files, never stored in git.
 /out/
+/logs/
 *.iso
 *.qcow2
-*.fd
-/.cache/
+*.tar.zst
+__pycache__/
