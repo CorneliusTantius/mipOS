@@ -179,6 +179,8 @@ dm_mod
 dm_crypt
 # (the live system's start-up asks for dm_snapshot)
 dm_snapshot
+# (the installed system's start-up, hook sd-encrypt, asks for dm_integrity)
+dm_integrity
 zram
 vfat
 nls_utf8
