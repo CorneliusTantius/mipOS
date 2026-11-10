@@ -107,7 +107,10 @@ Needs internet in the VM. Best on top of A3a (or run step 5.2 on an already inst
 | 5.2 | On an already installed system instead: `sudo mipos-add-desktop` | Same packages install; "Done." |
 | 5.3 | `cat ~/.bash_profile` | Ends with the `# mipOS desktop` block (tty1 only) |
 | 5.4 | Log in on tty1 (or type `mango`) | The desktop starts: mouse pointer and a Waybar bar on the screen edge |
-| 5.5 | Press **Alt+Enter** | A foot terminal opens |
+| 5.5 | Press **Alt+Enter** | A foot terminal opens: black, white text, JetBrains Mono |
+| 5.5a | Press **Ctrl+Space**, type `foot`, Enter; press Esc to close it | A black launcher with a red `>` prompt opens; Enter starts foot |
+| 5.5b | Look at the screen | Black background, thin red border on the focused window, rounded corners, floating Waybar pills (dots for tags, layout, clock, status). Screenshot welcome |
+| 5.5c | Open two terminals (Alt+Enter twice), then **Alt+Left/Right** | Windows sit side by side in a strip and scroll when focus moves (scroller layout) |
 | 5.6 | Quit MangoWM (default: **Super+M** (the Windows key); see `~/.config/mango/config.conf`) | Back at the text shell, no error |
 | 5.6b | In `~/.config/mango/config.conf` look for `exec_once=waybar` at the end | Present once |
 | 5.7 | Switch to tty2 (Ctrl+Alt+F2) and log in | Plain text shell, no desktop |

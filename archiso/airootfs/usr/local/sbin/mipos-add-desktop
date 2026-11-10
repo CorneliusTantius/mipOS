@@ -5,9 +5,9 @@
 #  Usage (as root):   mipos-add-desktop [USERNAME]
 #
 #  It installs the packages in DESKTOP_PACKAGES (mipos.conf), gives the user
-#  MangoWM's default settings (~/.config/mango/config.conf, only if the
-#  user has none yet, plus a line that starts the Waybar bar) and starts the desktop when that user logs in on
-#  tty1. tty2 to tty6 stay plain text. Quitting MangoWM returns to the
+#  the mipOS settings for MangoWM, Waybar, the Ctrl+Space launcher (fuzzel)
+#  and the foot terminal (~/.config/..., only files the user doesn't have
+#  yet), and starts the desktop when that user logs in on tty1. tty2 to tty6 stay plain text. Quitting MangoWM returns to the
 #  text shell. Run it again any time: it changes nothing twice.
 #  The installer runs this for you when you answer yes to the desktop question.
 # =====================================================================
@@ -32,17 +32,17 @@ echo "== Installing: ${DESKTOP_PACKAGES}"
 # shellcheck disable=SC2086   # the list is meant to split into words
 pacman -S --needed --noconfirm ${DESKTOP_PACKAGES}
 
-echo "== Default settings for ${user}"
-conf="${home}/.config/mango/config.conf"
-if [[ ! -e ${conf} ]]; then
-    install -d -o "${user}" -g "${group}" -m 755 "${home}/.config" "${home}/.config/mango"
-    install -o "${user}" -g "${group}" -m 644 /etc/mango/config.conf "${conf}"
-fi
-
-if [[ " ${DESKTOP_PACKAGES} " == *" waybar "* ]] && ! grep -qs '^exec_once=waybar' "${conf}"; then
-    echo "== Bar: start Waybar with MangoWM"
-    printf '\n# mipOS: status bar\nexec_once=waybar\n' >>"${conf}"
-fi
+echo "== mipOS look and settings for ${user}"
+# Copies each program's settings (Nothing-style look) from /usr/share/mipos/desktop
+# to ~/.config, but never over a file you already have.
+share=/usr/share/mipos/desktop
+for f in mango/config.conf waybar/config.jsonc waybar/style.css fuzzel/fuzzel.ini foot/foot.ini; do
+    dest="${home}/.config/${f}"
+    if [[ ! -e ${dest} ]]; then
+        install -d -o "${user}" -g "${group}" -m 755 "${home}/.config" "$(dirname "${dest}")"
+        install -o "${user}" -g "${group}" -m 644 "${share}/${f}" "${dest}"
+    fi
+done
 
 echo "== Start on tty1 login"
 profile="${home}/.bash_profile"
@@ -58,4 +58,4 @@ EOF
     chown "${user}:${group}" "${profile}"
 fi
 
-echo "Done. Log out and log in again on tty1 (or type: mango). Alt+Enter opens a terminal."
+echo "Done. Log out and log in again on tty1 (or type: mango). Ctrl+Space opens the launcher, Alt+Enter a terminal."

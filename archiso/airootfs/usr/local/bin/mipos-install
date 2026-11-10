@@ -813,14 +813,15 @@ step_desktop() {
         header 8 "Desktop"
         if [[ ${NET_OK} == yes ]]; then
             say "${DISTRO_NAME} can be text only, or come with a desktop: MangoWM (a small" \
-                "window manager with scrolling windows), a status bar (Waybar) and the foot" \
-                "terminal. The desktop is downloaded now: the install takes a few minutes" \
-                "longer and uses roughly 300 MB or more disk space. You can also add it" \
-                "later with: sudo mipos-add-desktop"
+                "window manager with scrolling windows), a status bar (Waybar), a launcher" \
+                "(Ctrl+Space) and the foot terminal, in a black-and-white look." \
+                "The desktop is downloaded now: the install takes a few minutes longer" \
+                "and uses roughly 600 MB of disk space. You can also add it later with:" \
+                "    sudo mipos-add-desktop"
             blank
             ANS[DESKTOP]="$(choose "How should ${DISTRO_NAME} be installed?" \
                 no  "Without desktop: text only (smallest, default)" \
-                yes "With desktop: MangoWM + bar + terminal")"
+                yes "With desktop: MangoWM + bar + launcher + terminal")"
         else
             say "The desktop (MangoWM) is downloaded from the internet, and you're not" \
                 "connected, so it can't be included now. After the restart, connect and run:" \

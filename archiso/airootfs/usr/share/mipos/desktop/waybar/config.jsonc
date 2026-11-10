@@ -1,0 +1,70 @@
+// mipOS desktop: Waybar (Nothing-style: black pills, white text, red accent)
+// Copied to ~/.config/waybar/ by mipos-add-desktop (only if you have none).
+// Modules: https://github.com/Alexays/Waybar/wiki/Modules
+{
+  "layer": "top",
+  "position": "top",
+  "height": 32,
+  "margin-top": 10,
+  "margin-left": 14,
+  "margin-right": 14,
+  "spacing": 10,
+
+  "modules-left": ["mango/workspaces", "mango/layout"],
+  "modules-center": ["clock"],
+  "modules-right": ["bluetooth", "network", "backlight", "battery"],
+
+  // Tags as dots: filled = current, hollow = has windows
+  "mango/workspaces": {
+    "format": "{icon}",
+    "format-icons": {
+      "default": "○",
+      "active": "●",
+      "urgent": "●",
+      "empty": "·"
+    },
+    "hide-empty": true,
+    "on-click": "activate"
+  },
+
+  "mango/layout": {
+    "format": "{symbol}"
+  },
+
+  "clock": {
+    "format": "{:%H:%M}",
+    "format-alt": "{:%a %d %b}",
+    "tooltip": false
+  },
+
+  "bluetooth": {
+    "format": "BT",
+    "format-connected": "BT {num_connections}",
+    "format-off": "",
+    "format-disabled": "",
+    "tooltip": false
+  },
+
+  "network": {
+    "format-wifi": "{essid}",
+    "format-ethernet": "WIRED",
+    "format-disconnected": "OFFLINE",
+    "tooltip": false
+  },
+
+  "backlight": {
+    "format": "{percent}",
+    "tooltip": false
+  },
+
+  "battery": {
+    "format": "{capacity}%",
+    "format-charging": "+{capacity}%",
+    "format-full": "{capacity}%",
+    "states": {
+      "warning": 20,
+      "critical": 10
+    },
+    "tooltip": false
+  }
+}

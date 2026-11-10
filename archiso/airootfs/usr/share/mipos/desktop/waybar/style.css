@@ -1,0 +1,89 @@
+/* mipOS desktop: Waybar style. Black, white, grey, one red accent (#d71921). */
+
+* {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+  min-height: 0;
+}
+
+window#waybar {
+  background: transparent;
+  color: #ffffff;
+}
+
+/* Every module is a black pill with a thin grey outline */
+#workspaces,
+#layout,
+#clock,
+#bluetooth,
+#network,
+#backlight,
+#battery {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #262626;
+  border-radius: 16px;
+  padding: 0 14px;
+}
+
+/* Tag dots */
+#workspaces {
+  padding: 0 6px;
+}
+
+#workspaces button {
+  background: transparent;
+  color: #6b6b6b;
+  padding: 0 5px;
+  border-radius: 0;
+}
+
+#workspaces button:hover {
+  background: transparent;
+  color: #ffffff;
+}
+
+#workspaces button.visible {
+  color: #ffffff;
+}
+
+#workspaces button.active {
+  color: #d71921;
+}
+
+#workspaces button.urgent {
+  color: #ffffff;
+}
+
+#layout {
+  color: #8c8c8c;
+}
+
+#clock {
+  letter-spacing: 1px;
+}
+
+#bluetooth,
+#backlight {
+  color: #8c8c8c;
+}
+
+#network.disconnected {
+  color: #8c8c8c;
+}
+
+#battery.warning {
+  color: #ffffff;
+}
+
+#battery.critical {
+  color: #d71921;
+}
+
+#battery.charging {
+  color: #ffffff;
+}

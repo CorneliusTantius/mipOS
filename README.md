@@ -13,7 +13,7 @@ same.
 |---|---|
 | **Made for** | ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U. Other hardware can be added: [docs/HARDWARE.md](docs/HARDWARE.md) |
 | **Base** | Arch Linux (official packages, updated with `pacman`), x86_64, UEFI only |
-| **Interface** | Text only, or with the MangoWM desktop (Waybar bar, foot terminal): chosen in the installer or added later with `sudo mipos-add-desktop` (needs internet) |
+| **Interface** | Text only, or with the MangoWM desktop (Waybar bar, Ctrl+Space launcher, foot terminal, black-and-white look): chosen in the installer or added later with `sudo mipos-add-desktop` (needs internet) |
 | **Network** | Wi-Fi with `iwctl`, cable automatic, phone USB tethering; Bluetooth with `bluetoothctl` |
 | **Install** | Erase the disk, or use free space next to Windows; optional disk encryption; hibernation |
 | **Battery** | power-saver on battery, device power saving, zram, thermald |
@@ -233,7 +233,7 @@ out/                   Everything the build makes (not stored in git)
 - **Base:** Arch Linux, official repos only (AUR only if approved per package),
   x86_64, UEFI only (Secure Boot off).
 - **Kernel:** Arch's stock `linux`, trimmed by the keep lists.
-- **Interface:** text only (tty login, no greeter). Optional MangoWM + Waybar + foot, installed from the official repos on request, never part of the ISO. **Init:** systemd.
+- **Interface:** text only (tty login, no greeter). Optional MangoWM + Waybar + fuzzel + foot, installed from the official repos on request, never part of the ISO. **Init:** systemd.
 - **Network:** iwd (Wi-Fi) + systemd-networkd + systemd-resolved.
 - **Live ISO:** logs in as root automatically on the first screen; xz compressed.
 - **Installer:** `mipos-install`, plain bash with colored text menus; unattended
@@ -248,6 +248,22 @@ out/                   Everything the build makes (not stored in git)
   unneeded timers off, kernel options `quiet loglevel=3 nowatchdog zswap.enabled=0`.
 - **Size:** no docs, man pages, translations, headers or static libraries; no
   developer tools by default (see [docs/HARDWARE.md](docs/HARDWARE.md) to add them).
+
+## Desktop keys (optional MangoWM desktop)
+
+| Keys | Does |
+|---|---|
+| **Ctrl+Space** | Launcher (type, Enter) |
+| **Alt+Enter** | Terminal (foot) |
+| **Alt+Q** | Close the window |
+| **Alt+arrows** | Move focus between windows (they scroll sideways) |
+| **Super+arrows** / **Ctrl+1..9** | Switch tag (workspace); **Alt+1..9** moves the window there |
+| **Super+N** | Switch layout (starts as scroller) |
+| **Super+R** | Reload the settings |
+| **Super+M** | Quit the desktop (back to the text shell) |
+
+Settings are in `~/.config/mango`, `waybar`, `fuzzel` and `foot` (copies of
+`/usr/share/mipos/desktop`). Colors: black, white, grey and red `#d71921`.
 
 ## Status
 
