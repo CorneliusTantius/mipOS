@@ -8,4 +8,4 @@ Type=oneshot
 ExecStart=/usr/local/sbin/mipos-power-source
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=power-profiles-daemon.service
