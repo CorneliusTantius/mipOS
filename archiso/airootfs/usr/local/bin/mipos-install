@@ -977,7 +977,8 @@ do_cleanup_live() {
            "${t}/usr/local/bin/mipos-install" \
            "${t}/etc/machine-id"
     rmdir "${t}/etc/systemd/system/getty@tty1.service.d" 2>/dev/null || true
-    printf '\n  %s %s\n\n' "${DISTRO_NAME}" "${DISTRO_VERSION}" >"${t}/etc/motd"
+    printf '\n  %s %s\n  Hardware not working (non-Intel Wi-Fi, AMD/NVIDIA graphics...)?\n  Read: less /usr/share/mipos/HARDWARE.md\n\n' \
+        "${DISTRO_NAME}" "${DISTRO_VERSION}" >"${t}/etc/motd"
     arch-chroot "${t}" pacman -R --noconfirm mkinitcpio-archiso
 }
 

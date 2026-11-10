@@ -5,5 +5,6 @@
   Wi-Fi:      iwctl station wlan0 connect "Network name"
               (cable connects by itself; the installer can also do Wi-Fi)
   Volume:     alsamixer
+  Hardware:   less /usr/share/mipos/HARDWARE.md (non-Intel devices)
   Power off:  poweroff
 

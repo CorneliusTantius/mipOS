@@ -61,6 +61,7 @@ scripts/               The build steps, numbered, run in order
   get-iso.sh             download the newest ISO from GitHub and check it
   test-vm.sh             start the ISO (or, with --no-iso, the installed system) in a VM
   make-test-disk.sh      new VM test disk: "empty" or "windows" (fake Windows, for dual boot)
+docs/HARDWARE.md       Adding drivers/firmware for non-Intel hardware
 reports/               Size reports kept for comparison (size-A1.txt = first build)
 .github/workflows/     The GitHub build (manual start only)
 out/                   Everything the build makes (not stored in git)
@@ -191,9 +192,13 @@ Intel Wi-Fi firmware comes in many versions per chip; after every kernel or
 firmware update, `/usr/local/sbin/mipos-trim-wifi-firmware` (a pacman hook)
 keeps only the two newest versions the kernel can load.
 
-To get something back, put `!` in front of its pattern (or delete the line)
-and rebuild. On an installed system, reinstall the package afterwards
-(`sudo pacman -S <package>`).
+**Other hardware (non-Intel Wi-Fi, AMD/NVIDIA graphics, webcams...)**: drivers
+and firmware for it can be added back on an installed system with pacman;
+step-by-step commands are in [docs/HARDWARE.md](docs/HARDWARE.md) (also on the
+system itself: `less /usr/share/mipos/HARDWARE.md`).
+
+To change what the ISO leaves out, put `!` in front of a pattern (or delete the
+line) and rebuild.
 
 The size report compares every build with the report set in `SIZE_BASELINE` (mipos.conf); old reports are kept in `reports/`.
 

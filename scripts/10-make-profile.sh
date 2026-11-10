@@ -30,8 +30,10 @@ while IFS= read -r -d '' file; do
     printf '%s\n' "${text}" >"${file}"
 done < <(find "${PROFILE_DIR}" -type f -print0)
 
-# The installer reads the same settings file.
+# The installer reads the same settings file; the hardware help page is
+# readable offline on the live and installed system (less /usr/share/mipos/HARDWARE.md).
 install -D -m 644 "${REPO_DIR}/mipos.conf" "${PROFILE_DIR}/airootfs/usr/share/mipos/mipos.conf"
+install -D -m 644 "${REPO_DIR}/docs/HARDWARE.md" "${PROFILE_DIR}/airootfs/usr/share/mipos/HARDWARE.md"
 
 # Anything still looking like @NAME@ is a typo or a missing setting.
 if leftovers="$(grep -rnoE '@[A-Z][A-Z_]+@' "${PROFILE_DIR}")"; then
