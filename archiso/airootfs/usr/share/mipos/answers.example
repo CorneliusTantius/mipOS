@@ -17,7 +17,7 @@ HOSTNAME=mipos
 FULLNAME="Test User"
 USERNAME=test
 PASSWORD="change-me"
-DISK=/dev/vda                # the whole disk, not a partition
+DISK=/dev/nvme0n1            # the whole disk, not a partition (ThinkPad and test VM: /dev/nvme0n1)
 MODE=erase                   # erase = whole disk | free = largest free space
 ENCRYPT=no                   # yes | no
 LUKS_PASSWORD=""             # needed when ENCRYPT=yes

@@ -163,7 +163,10 @@ what changed. On an Arch Linux computer you can also build locally:
 ## Testing in a virtual machine
 
 The ISO also runs in QEMU (with UEFI) on any Linux computer, for testing the
-installer without touching the laptop. One-time setup (Ubuntu):
+installer without touching the laptop. The VM imitates the ThinkPad where QEMU
+can: NVMe disk, Intel Ethernet (e1000e), Intel HD Audio, USB 3, the laptop's
+name in the firmware tables, and (on the ThinkPad itself) its real CPU; the
+screen is 1280×720 (`VM_RESOLUTION` in mipos.conf). One-time setup (Ubuntu):
 
 ```bash
 sudo apt install qemu-system-x86 qemu-utils ovmf gh gdisk dosfstools mtools

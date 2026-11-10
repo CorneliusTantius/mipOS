@@ -2,7 +2,9 @@
 # mipos-trim-hardware: delete kernel drivers and firmware this laptop doesn't use.
 #
 # Keeps:
-#   drivers   named in /etc/mipos/keep-modules, plus every driver they need
+#   drivers   named in /etc/mipos/keep-modules (names, or folder patterns with a
+#             "/" like crypto/* , relative to the kernel's driver folder),
+#             plus every driver they need
 #   firmware  matching /etc/mipos/keep-firmware; for Intel Wi-Fi only the two
 #             newest versions the kernel can load
 # Runs automatically after kernel and firmware installs/updates (pacman hook
@@ -20,9 +22,10 @@ mib() { echo $(( ($1 + 524288) / 1048576 )); }
 
 # ---------------------------------------------------------------- drivers
 trim_modules() {
-    local kdir=$1 kver name f d removed=0 freed=0
+    local kdir=$1 kver name f d rel p removed=0 freed=0
     kver=${kdir%/}; kver=${kver##*/}
     declare -A path=() keep=() builtin=()
+    local -a pats=() todo=()
     while IFS= read -r f; do
         name=${f##*/}; name=${name%%.ko*}; path[${name//-/_}]=${f}
     done < <(find "${kdir}/kernel" -name '*.ko*' 2>/dev/null)
@@ -30,9 +33,20 @@ trim_modules() {
     if [[ -f ${kdir}/modules.builtin ]]; then
         while IFS= read -r f; do name=${f##*/}; name=${name%%.ko*}; builtin[${name//-/_}]=1; done <"${kdir}/modules.builtin"
     fi
-    # Wanted drivers, then everything they depend on (also "softdep" helpers).
-    local -a todo=()
-    mapfile -t todo < <(read_list "${conf}/keep-modules" | tr '-' '_')
+    # Wanted drivers: names, plus every driver under a listed folder pattern.
+    while IFS= read -r f; do
+        if [[ ${f} == */* ]]; then pats+=("${f}"); else todo+=("${f//-/_}"); fi
+    done < <(read_list "${conf}/keep-modules")
+    if (( ${#pats[@]} )); then
+        for name in "${!path[@]}"; do
+            rel=${path[${name}]#"${kdir}/kernel/"}
+            for p in "${pats[@]}"; do
+                # shellcheck disable=SC2053
+                [[ ${rel} == ${p} ]] && { todo+=("${name}"); break; }
+            done
+        done
+    fi
+    # ...then everything they depend on (also "softdep" helpers).
     while (( ${#todo[@]} )); do
         name=${todo[-1]}; unset 'todo[-1]'
         [[ -n ${keep[${name}]:-} ]] && continue

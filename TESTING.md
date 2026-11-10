@@ -24,6 +24,8 @@ looks different from "Expected" and send it, with the full error message.
 | 2.2 | `ping -c 3 archlinux.org` | `3 received` |
 | 2.3 | `swapon --show` | A line with `/dev/zram0` |
 | 2.4 | `systemctl is-active iwd power-profiles-daemon thermald` | `active` (thermald may be `inactive` in a VM) |
+| 2.3b | `lsblk -d`; `ip -br link`; `cat /sys/class/dmi/id/product_version` | Disk `nvme0n1`; a network card `enp...` (Intel e1000e, like the laptop); `ThinkPad L14 Gen 5` |
+| 2.3c | `cat /proc/asound/cards` | An `HDA-Intel` sound card (the VM's Intel HD Audio) |
 | 2.4a | `systemctl is-active bluetooth` | `inactive` is fine in a VM (no Bluetooth chip); on the laptop: `active` |
 | 2.4b | `powerprofilesctl get`; `journalctl -b -u mipos-power-source` | `balanced` (a VM counts as "on charger"); the log says `mipOS power: on charger` |
 | 2.5 | `systemctl --failed` | `0 loaded units listed` (thermald failing in a VM is OK) |
@@ -37,13 +39,13 @@ looks different from "Expected" and send it, with the full error message.
 |---|---|---|
 | 3.1 | `scripts/make-test-disk.sh empty`, then `scripts/test-vm.sh` | Live system starts |
 | 3.2 | `mipos-install --dry-run`, answer everything | Summary shown, then "Dry run: stopping here". Nothing changed |
-| 3.3 | `mipos-install`. Network: automatic. Language `en_US.UTF-8`, keyboard `us`, any timezone, name `mipos`, user e.g. `test`. Disk `/dev/vda`, **Erase the whole disk**, encryption **No**, type `yes` | Progress messages, a copy progress bar, then "mipOS is installed" with the disk space used. **Note the numbers** |
+| 3.3 | `mipos-install`. Network: automatic. Language `en_US.UTF-8`, keyboard `us`, any timezone, name `mipos`, user e.g. `test`. Disk `/dev/nvme0n1`, **Erase the whole disk**, encryption **No**, type `yes` | Progress messages, a copy progress bar, then "mipOS is installed" with the disk space used. **Note the numbers** |
 | 3.4 | Answer **No** to "Restart now?", then `poweroff` | VM closes |
 | 3.5 | `scripts/test-vm.sh --no-iso` | GRUB shows briefly, then `mipos login:` |
 | 3.6 | Log in as your user | Prompt `[test@mipos ~]$` |
 | 3.7 | `sudo whoami` (type your password) | `root` |
 | 3.8 | `su -` (press Enter at the password prompt) | `Authentication failure` (root is locked) |
-| 3.9 | `lsblk -f` | `vda1` vfat on `/boot`, `vda2` btrfs on `/` and others |
+| 3.9 | `lsblk -f` | `nvme0n1p1` vfat on `/boot`, `nvme0n1p2` btrfs on `/` and others |
 | 3.10 | `findmnt -t btrfs -o TARGET,OPTIONS` | `/ /home /var/log /var/cache /swap`, each with `compress=zstd:1` and `subvol=/@...` |
 | 3.11 | `swapon --show` | `/dev/zram0` and `/swap/swapfile` (size of the VM's RAM, 4G) |
 | 3.12 | `ping -c 3 archlinux.org` | `3 received` |
@@ -59,7 +61,7 @@ looks different from "Expected" and send it, with the full error message.
 | 3.17 | `mipos-install`, same as 3.3 but encryption **Yes** (separate or same password) | "mipOS is installed" |
 | 3.18 | No restart, `poweroff`, then `scripts/test-vm.sh --no-iso` | After GRUB: a password prompt (`Please enter passphrase for disk ...`) |
 | 3.19 | Type the encryption password | Continues to `mipos login:`; log in works |
-| 3.20 | `lsblk -f` | `vda2` is `crypto_LUKS`, with `cryptroot` (btrfs) inside |
+| 3.20 | `lsblk -f` | `nvme0n1p2` is `crypto_LUKS`, with `cryptroot` (btrfs) inside |
 
 ## A4. Dual boot and hibernation
 
@@ -68,9 +70,9 @@ looks different from "Expected" and send it, with the full error message.
 | # | Do this | Expected |
 |---|---|---|
 | 4.1 | `scripts/make-test-disk.sh windows` | Prints the fake Windows layout with ~31 GB free |
-| 4.2 | `scripts/test-vm.sh`, then `sgdisk -p /dev/vda` | Partitions 1–4 (Windows); **write down their Start/End numbers** |
-| 4.3 | `mipos-install`, disk `/dev/vda`: the menu offers **Use the 31 GB of free space** | Summary says "Windows found: yes" |
-| 4.4 | Finish the install, no restart, then `sgdisk -p /dev/vda` | Partitions 1–4 **exactly as in 4.2**, plus 5 (`mipOS EFI`) and 6 (`mipOS`) |
+| 4.2 | `scripts/test-vm.sh`, then `sgdisk -p /dev/nvme0n1` | Partitions 1–4 (Windows); **write down their Start/End numbers** |
+| 4.3 | `mipos-install`, disk `/dev/nvme0n1`: the menu offers **Use the 31 GB of free space** | Summary says "Windows found: yes" |
+| 4.4 | Finish the install, no restart, then `sgdisk -p /dev/nvme0n1` | Partitions 1–4 **exactly as in 4.2**, plus 5 (`mipOS EFI`) and 6 (`mipOS`) |
 | 4.5 | `poweroff`, then `scripts/test-vm.sh --no-iso` | GRUB menu waits 5 s and lists **mipOS** and **Windows Boot Manager** |
 | 4.6 | Pick mipOS | Boots to `mipos login:` (picking Windows fails: it's fake) |
 

@@ -5,6 +5,8 @@
 # Btrfs, ext4...) always work and aren't listed here.
 #
 # Add a driver: put its name on a new line, then: sudo pacman -S linux
+# A line with a "/" is a folder pattern (relative to the kernel's driver
+# folder), e.g. crypto/* keeps every driver in kernel/crypto.
 # Keep ALL drivers: put a line with only * , then: sudo pacman -S linux
 # See /usr/share/mipos/HARDWARE.md.
 
@@ -184,7 +186,16 @@ nls_iso8859_1
 exfat
 ntfs3
 
-# --- Generally useful (VPN, input tools, I2C sensors) ---
+# --- Kernel crypto (whole folders, under 1 MB) ---
+# iwd (Wi-Fi) asks the kernel for many ciphers (DES, CBC, ECB, CMAC...),
+# and so do disk encryption and VPNs. Ubuntu builds most of these into its
+# kernel, Arch ships them as modules, so they're kept as whole folders.
+crypto/*
+arch/x86/crypto/*
+lib/crypto/*
+
+# --- Generally useful (VPN, input tools, I2C sensors, /dev/input/mice) ---
+mousedev
 tun
 uinput
 i2c_dev
