@@ -330,7 +330,7 @@ yesno() {
     [[ ${1:-} == --defaultno ]] && { def=no; shift; }
     local rc
     while true; do
-        set +e; confirm_raw "${def}" "$1" cancel; rc=$?; set -e
+        if confirm_raw "${def}" "$1" cancel; then rc=0; else rc=$?; fi
         (( rc < 2 )) && return ${rc}
         quit_check
     done
@@ -370,6 +370,23 @@ on_error() {   # on_error CODE LINE COMMAND
         return 0
     fi
     die "Unexpected error (code $1) at line $2 of mipos-install, while running: $3"
+}
+
+ERR_TRAP='on_error $? ${LINENO} "${BASH_COMMAND}"'
+safety_net_on()  { if [[ ${BASHPID} == "${MAIN_PID}" ]]; then trap "${ERR_TRAP}" ERR; fi; }
+safety_net_off() { trap - ERR; }
+
+# Run "$@" in a subshell that stops at its first error; set RUN_RC to its exit code.
+# The safety net is off around it: a failure here is expected and handled by the caller.
+run_isolated() {
+    safety_net_off
+    set +e
+    ( trap 'log "Failed (code $?) at line ${LINENO}: ${BASH_COMMAND}"' ERR
+      set -Eeuo pipefail
+      "$@" )
+    RUN_RC=$?
+    set -e
+    safety_net_on
 }
 
 die() {
@@ -502,7 +519,7 @@ show_connection() {   # which network cards are connected, and their addresses
         kind="cable"
         if [[ -e /sys/class/net/${dev}/wireless ]]; then
             kind="Wi-Fi"
-            ssid="$(iwctl station "${dev}" show 2>/dev/null | sed -e 's/\x1b\[[0-9;]*m//g' \
+            ssid="$( { iwctl station "${dev}" show 2>/dev/null || true; } | sed -e 's/\x1b\[[0-9;]*m//g' \
                     | awk '/Connected network/ {sub(/.*Connected network[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); print}')"
             [[ -n ${ssid} ]] && kind="Wi-Fi \"${ssid}\""
         fi
@@ -845,10 +862,8 @@ step() {   # step "title" function
     STEP_NO=$((STEP_NO + 1))
     log "== ${title}"
     start_spinner "(${STEP_NO}/${STEPS}) ${title}..."
-    set +e
-    ( set -Eeuo pipefail; "$@" ) >>"${LOG}" 2>&1
-    rc=$?
-    set -e
+    run_isolated "$@" >>"${LOG}" 2>&1
+    rc=${RUN_RC}
     stop_spinner
     (( rc == 0 )) || die "\"${title}\" failed."
     good "(${STEP_NO}/${STEPS}) ${title}"
@@ -1111,14 +1126,15 @@ finish_report() {
     chmod 600 "${TARGET}/var/log/mipos-install.log"
 }
 
-cleanup() {
-    set +e
+cleanup() {   # unmount everything; each part may already be undone, that's fine
+    safety_net_off
     stop_spinner
     ui_restore
-    swapoff "${TARGET}/swap/swapfile" 2>/dev/null
-    umount -R "${TARGET}" 2>/dev/null
-    cryptsetup close "${CRYPT_NAME}" 2>/dev/null
+    swapoff "${TARGET}/swap/swapfile" 2>/dev/null || true
+    umount -R "${TARGET}" 2>/dev/null || true
+    cryptsetup close "${CRYPT_NAME}" 2>/dev/null || true
     rm -f "${STATE}"
+    return 0
 }
 
 install_system() {
@@ -1135,8 +1151,8 @@ install_system() {
     STEP_NO=$((STEP_NO + 1))
     COPY_TITLE="(${STEP_NO}/${STEPS}) Copying the system"
     interactive || echo "... ${COPY_TITLE}"
-    set +e; ( set -Eeuo pipefail; do_copy ) 2>>"${LOG}"; rc=$?; set -e
-    (( rc == 0 )) || die "Copying the system failed."
+    run_isolated do_copy 2>>"${LOG}"
+    (( RUN_RC == 0 )) || die "Copying the system failed."
     good "${COPY_TITLE}"
     step "Removing live-only settings" do_cleanup_live
     step "Language, time, name, services" do_settings
@@ -1155,6 +1171,7 @@ install_system() {
     finish_report
     sync
     cleanup
+    safety_net_on
     trap 'ui_restore' EXIT
 }
 
@@ -1176,7 +1193,7 @@ main() {
     [[ ${UNATTENDED} == yes ]] && load_answers "${CONFIG_FILE}"
     export TERM=${TERM:-linux}
     [[ ${UNATTENDED} == no && -t 0 && -t 1 ]] && INTERACTIVE=yes
-    trap 'on_error $? ${LINENO} "${BASH_COMMAND}"' ERR
+    safety_net_on
     trap 'UI_INT=1' INT                   # Ctrl+C on a question: "Quit?"
     trap 'ui_restore; exit 1' TERM        # "Yes, quit" from inside a question
     trap 'ui_restore' EXIT
