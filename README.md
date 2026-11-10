@@ -13,7 +13,7 @@ same.
 |---|---|
 | **Made for** | ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U. Other hardware can be added: [docs/HARDWARE.md](docs/HARDWARE.md) |
 | **Base** | Arch Linux (official packages, updated with `pacman`), x86_64, UEFI only |
-| **Interface** | Text only (no desktop) |
+| **Interface** | Text only; optional MangoWM desktop (added by the installer or `sudo mipos-add-desktop`, needs internet) |
 | **Network** | Wi-Fi with `iwctl`, cable automatic, phone USB tethering; Bluetooth with `bluetoothctl` |
 | **Install** | Erase the disk, or use free space next to Windows; optional disk encryption; hibernation |
 | **Battery** | power-saver on battery, device power saving, zram, thermald |
@@ -233,7 +233,7 @@ out/                   Everything the build makes (not stored in git)
 - **Base:** Arch Linux, official repos only (AUR only if approved per package),
   x86_64, UEFI only (Secure Boot off).
 - **Kernel:** Arch's stock `linux`, trimmed by the keep lists.
-- **Interface:** text only. **Init:** systemd.
+- **Interface:** text only (tty login, no greeter). Optional MangoWM + foot, installed from the official repos on request, never part of the ISO. **Init:** systemd.
 - **Network:** iwd (Wi-Fi) + systemd-networkd + systemd-resolved.
 - **Live ISO:** logs in as root automatically on the first screen; xz compressed.
 - **Installer:** `mipos-install`, plain bash with colored text menus; unattended

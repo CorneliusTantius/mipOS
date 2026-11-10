@@ -21,5 +21,6 @@ DISK=/dev/nvme0n1            # the whole disk, not a partition (ThinkPad and tes
 MODE=erase                   # erase = whole disk | free = largest free space
 ENCRYPT=no                   # yes | no
 LUKS_PASSWORD=""             # needed when ENCRYPT=yes
+DESKTOP=no                   # yes = also install the MangoWM desktop (needs internet)
 CONFIRM=no                   # must be yes to really install
 REBOOT=no                    # yes = restart when finished

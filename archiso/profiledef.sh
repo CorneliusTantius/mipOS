@@ -22,4 +22,5 @@ file_permissions=(
   ["/usr/local/bin/mipos-install"]="0:0:755"
   ["/usr/local/sbin/mipos-trim-hardware"]="0:0:755"
   ["/usr/local/sbin/mipos-power-source"]="0:0:755"
+  ["/usr/local/sbin/mipos-add-desktop"]="0:0:755"
 )

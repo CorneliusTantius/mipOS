@@ -11,7 +11,7 @@
 #
 #  Screens are drawn with plain bash and terminal colors (nothing extra to install).
 #  Steps: network, language and keyboard, timezone, computer name, user,
-#  disk, encryption, summary (type "yes"), install. Nothing on any disk
+#  disk, encryption, desktop (optional), summary (type "yes"), install. Nothing on any disk
 #  changes before you confirm the summary.
 #
 #  How it installs: it copies the live system (the files you are running
@@ -36,7 +36,7 @@ ESP_OPTS="fmask=0137,dmask=0027"  # EFI partition: only root may change it
 TITLE="${DISTRO_NAME} ${DISTRO_VERSION} installer"
 UNATTENDED=no
 DRY_RUN=no
-STEP_TOTAL=8
+STEP_TOTAL=9
 
 declare -A ANS=()                 # answers (from menus or the --config file)
 
@@ -421,7 +421,7 @@ gib() { echo $(( ($1 + 1023) / 1024 )); }   # MiB -> GiB, rounded up
 # Answers file (--config): KEY=value lines, read as text (never run)
 # ---------------------------------------------------------------------
 KEYS="NETWORK WIFI_SSID WIFI_PASSWORD LOCALE KEYMAP TIMEZONE HOSTNAME FULLNAME USERNAME
-      PASSWORD DISK MODE ENCRYPT LUKS_PASSWORD UPDATE CONFIRM REBOOT"
+      PASSWORD DISK MODE ENCRYPT LUKS_PASSWORD DESKTOP UPDATE CONFIRM REBOOT"
 
 load_answers() {
     local line key val
@@ -804,15 +804,50 @@ step_encrypt() {
 }
 
 # ---------------------------------------------------------------------
-# 8. Summary and confirmation
+# 8. Desktop (optional)
+# ---------------------------------------------------------------------
+step_desktop() {
+    if [[ ${UNATTENDED} == yes ]]; then
+        ANS[DESKTOP]=${ANS[DESKTOP]:-no}
+    elif [[ -z ${ANS[DESKTOP]:-} ]]; then
+        header 8 "Desktop (optional)"
+        if [[ ${NET_OK} == yes ]]; then
+            say "${DISTRO_NAME} is text only. You can also add MangoWM, a small window" \
+                "manager (windows, mouse) plus the foot terminal. It is downloaded now," \
+                "so the install takes a few minutes longer and uses a few hundred MB more disk."
+            blank
+            if yesno --defaultno "Install the MangoWM desktop?"; then
+                ANS[DESKTOP]=yes
+            else
+                ANS[DESKTOP]=no
+            fi
+        else
+            say "The desktop (MangoWM) is downloaded from the internet, and you're not" \
+                "connected. Skip it for now. After the restart, connect and run:" \
+                "    sudo mipos-add-desktop"
+            ANS[DESKTOP]=no
+            pause
+        fi
+    fi
+    case "${ANS[DESKTOP]}" in
+        yes) [[ ${NET_OK} == yes ]] || die "DESKTOP=yes needs internet (NETWORK=auto with a cable or Wi-Fi)." ;;
+        no)  ;;
+        *)   die "DESKTOP must be yes or no." ;;
+    esac
+}
+
+# ---------------------------------------------------------------------
+# 9. Summary and confirmation
 # ---------------------------------------------------------------------
 step_summary() {
-    local where net text answer lines=()
+    local where net desktop text answer lines=()
     if [[ ${ANS[MODE]} == erase ]]; then
         where="ERASE EVERYTHING on ${ANS[DISK]} ($(lsblk -dno SIZE,MODEL "${ANS[DISK]}" | xargs))"
     else
         where="free space on ${ANS[DISK]} ($(gib "$(free_mib "${ANS[DISK]}")") GB); everything else is kept"
     fi
+    desktop="no (text only)"
+    [[ ${ANS[DESKTOP]} == yes ]] && desktop="MangoWM (downloaded during the install)"
     net="not connected (no update at the end)"
     [[ ${NET_OK} == yes ]] && net="connected (update packages at the end)"
     text="Network:        ${net}
@@ -823,6 +858,7 @@ Computer name:  ${ANS[HOSTNAME]}
 User:           ${ANS[USERNAME]}${ANS[FULLNAME]:+ (${ANS[FULLNAME]})}, may use sudo; root locked
 Install to:     ${where}
 Encryption:     ${ANS[ENCRYPT]}
+Desktop:        ${desktop}
 Hibernation:    swap file of $(gib "$(ram_mib)") GB (size of RAM)
 Windows found:  ${WINDOWS}"
     log "Summary:"$'\n'"${text}"
@@ -831,7 +867,7 @@ Windows found:  ${WINDOWS}"
         [[ ${ANS[CONFIRM]:-} == yes ]] || die "Set CONFIRM=yes in the answers file to really install."
         return
     fi
-    header 8 "Check your choices"
+    header 9 "Check your choices"
     mapfile -t lines <<<"${text}"
     box "${DIM}" "${lines[@]}"
     blank
@@ -1061,6 +1097,18 @@ do_update() {
     fi
 }
 
+do_desktop() {
+    # Needs internet. A failed download is not fatal: the text system works.
+    local cmd="arch-chroot ${TARGET} /usr/local/sbin/mipos-add-desktop ${ANS[USERNAME]}"
+    if interactive; then
+        script -qefc "${cmd}" -a "${LOG}" \
+            || bad "Desktop install failed; after the restart run: sudo mipos-add-desktop"
+    else
+        ${cmd} >>"${LOG}" 2>&1 \
+            || echo "WARNING: desktop install failed; run 'sudo mipos-add-desktop' after the restart."
+    fi
+}
+
 do_initramfs() {
     local t=${TARGET} hooks=() h
     # The start-up system. Only hooks that exist in this mkinitcpio version are used.
@@ -1142,9 +1190,10 @@ install_system() {
     trap cleanup EXIT
     # From here on, Ctrl+C stops the installation (and unmounts everything).
     trap 'die "Stopped with Ctrl+C. The disk is only partly installed: run the installer again."' INT
-    if interactive; then header 8 "Installing"; fi
+    if interactive; then header 9 "Installing"; fi
     STEPS=10
     [[ ${NET_OK} == yes ]] && STEPS=11
+    [[ ${ANS[DESKTOP]} == yes ]] && STEPS=$((STEPS + 1))
     step "Making partitions on ${ANS[DISK]}" do_partition
     step "Formatting$([[ ${ANS[ENCRYPT]} == yes ]] && echo " and encrypting")" do_format
     step "Creating Btrfs subvolumes and the swap file" do_mount
@@ -1166,6 +1215,13 @@ install_system() {
         say "(${STEP_NO}/${STEPS}) Updating packages (shows pacman's download progress):"
         do_update
         good "(${STEP_NO}/${STEPS}) Updating packages"
+    fi
+    if [[ ${ANS[DESKTOP]} == yes ]]; then
+        STEP_NO=$((STEP_NO + 1))
+        log "== Installing the desktop"
+        say "(${STEP_NO}/${STEPS}) Installing the desktop (shows pacman's download progress):"
+        do_desktop
+        good "(${STEP_NO}/${STEPS}) Installing the desktop"
     fi
     step "Building the start-up system (initramfs)" do_initramfs
     step "Installing the boot loader (GRUB)" do_bootloader
@@ -1215,6 +1271,7 @@ main() {
     step_user
     step_disk
     step_encrypt
+    step_desktop
     step_summary
 
     if [[ ${DRY_RUN} == yes ]]; then
