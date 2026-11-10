@@ -1010,7 +1010,7 @@ do_settings() {
     fi
     # Services: network, Wi-Fi, time sync, power saving, SSD trim
     arch-chroot "${t}" systemctl enable systemd-networkd systemd-resolved iwd \
-        systemd-timesyncd tlp thermald fstrim.timer
+        systemd-timesyncd power-profiles-daemon mipos-power-source thermald fstrim.timer
 }
 
 do_users() {

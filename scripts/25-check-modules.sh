@@ -44,5 +44,10 @@ for fw in i915 xe intel/iwlwifi intel/sof-ipc4; do
     [[ -d "${root}/usr/lib/firmware/${fw}" ]] || { echo "MISSING firmware: ${fw}"; failed=1; }
 done
 
+# 4. Intel Wi-Fi firmware was trimmed, but every chip still has a file.
+n_wifi="$(find "${root}/usr/lib/firmware/intel/iwlwifi" -name '*.ucode*' | wc -l)"
+echo "${n_wifi} Intel Wi-Fi firmware files kept"
+(( n_wifi > 0 )) || { echo "MISSING: Intel Wi-Fi firmware (all trimmed?)"; failed=1; }
+
 (( failed == 0 )) || die "Module check failed (see above)."
 echo "All must-have modules and firmware are present and can load."

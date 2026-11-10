@@ -1,0 +1,17 @@
+# mipOS power saving (instead of TLP). Each rule saves a little battery.
+
+# Charger plugged in or out: switch power mode (see mipos-power-source).
+SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ACTION=="change", RUN+="/usr/bin/systemctl --no-block start mipos-power-source.service"
+
+# USB devices may sleep when not in use...
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", TEST=="power/control", ATTR{power/control}="auto"
+# ...except keyboards and mice, which could lag or miss the first key press.
+ACTION=="bind", SUBSYSTEM=="usb", DRIVER=="usbhid", RUN+="/bin/sh -c 'echo on > /sys%p/../power/control'"
+
+# PCI devices (Wi-Fi, sound, storage controllers...) may sleep when idle.
+# Not USB controllers (class 0x0c03) or the Intel management engine (0x0780):
+# on some laptops USB devices then disconnect (TLP skips them too).
+ACTION=="add", SUBSYSTEM=="pci", ATTR{class}!="0x0c03*", ATTR{class}!="0x0780*", TEST=="power/control", ATTR{power/control}="auto"
+
+# SATA disks: low-power link when idle.
+ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", TEST=="link_power_management_policy", ATTR{link_power_management_policy}="med_power_with_dipm"

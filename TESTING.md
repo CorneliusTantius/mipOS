@@ -21,7 +21,8 @@ different from "Expected" and send it, with the full error message.
 | 2.1 | `scripts/make-test-disk.sh empty`, then `scripts/test-vm.sh` | VM shows the welcome text and `[root@mipos ~]#` |
 | 2.2 | `ping -c 3 archlinux.org` | `3 received` |
 | 2.3 | `swapon --show` | A line with `/dev/zram0` |
-| 2.4 | `systemctl is-active iwd tlp thermald` | `active` (thermald may be `inactive` in a VM) |
+| 2.4 | `systemctl is-active iwd power-profiles-daemon thermald` | `active` (thermald may be `inactive` in a VM) |
+| 2.4b | `powerprofilesctl get`; `journalctl -b -u mipos-power-source` | `balanced` (a VM counts as "on charger"); the log says `mipOS power: on charger` |
 | 2.5 | `systemctl --failed` | `0 loaded units listed` (thermald failing in a VM is OK) |
 | 2.6 | `poweroff` | VM window closes |
 
@@ -90,4 +91,5 @@ Start the laptop from the stick (UEFI, Secure Boot off).
 | L.1 | `iwctl station wlan0 scan`, `iwctl station wlan0 get-networks` | Your network is listed |
 | L.2 | `iwctl station wlan0 connect "Name"`, password, then `ping -c 3 archlinux.org` | `3 received` |
 | L.3 | `alsamixer` (M = unmute, arrows = volume, Esc), then `speaker-test -c 2 -t wav -l 1` | "Front left, front right" from the speakers |
-| L.4 | `cat /sys/class/power_supply/BAT*/capacity`; `tlp-stat -s` | Battery %; TLP "enabled" |
+| L.4 | Unplug the charger, wait 3 s, `powerprofilesctl get` | `power-saver`; plug in again: `balanced` |
+| L.5 | `ls /usr/lib/firmware/intel/iwlwifi \| wc -l` and Wi-Fi still works | About 100 files (was ~230) |

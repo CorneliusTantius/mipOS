@@ -38,7 +38,7 @@ row "Live system, unpacked"            "$(dir_mib /)"
 row "Packages installed"               "$(pacman --root "${root}" -Qq | wc -l)"
 echo
 echo "--- Big folders inside the live system (MiB) ---"
-for d in /usr/lib/modules /usr/lib/firmware /usr/share/doc /usr/share/man \
+for d in /usr/lib/modules /usr/lib/firmware /usr/lib/firmware/intel/iwlwifi /usr/share/perl5 /usr/share/terminfo /usr/share/doc /usr/share/man \
          /usr/share/info /usr/share/locale /usr/share/i18n /usr/include \
          /usr/share/zoneinfo /usr/share/kbd /usr/lib/python3* /boot; do
     for match in ${root}${d}; do

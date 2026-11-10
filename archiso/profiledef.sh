@@ -20,4 +20,6 @@ file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/root"]="0:0:750"
   ["/usr/local/bin/mipos-install"]="0:0:755"
+  ["/usr/local/sbin/mipos-trim-wifi-firmware"]="0:0:755"
+  ["/usr/local/sbin/mipos-power-source"]="0:0:755"
 )

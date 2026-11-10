@@ -35,7 +35,7 @@ history.
 | **kernel module / driver** | A piece of the kernel for one kind of hardware, loaded only when needed. |
 | **NoExtract** | A pacman setting: files that match are not unpacked when a package is installed. We use it to leave out docs, translations and unused drivers. |
 | **zram** | Swap space inside RAM, compressed. Lets a small RAM hold more without a slow disk. |
-| **TLP / thermald** | Battery saving settings / Intel CPU temperature control. |
+| **power-profiles-daemon / thermald** | Power modes (power-saver, balanced, performance) / Intel CPU temperature control. |
 
 ## Folders
 
@@ -123,6 +123,8 @@ attaches an empty 20 GB test disk (`out/vm/disk.qcow2`) for the installer.
   `station wlan0 scan`, `station wlan0 get-networks`,
   `station wlan0 connect "Network name"` (asks for the password), `exit`.
   Check with `ping -c 3 archlinux.org`.
+- **Power mode:** on battery mipOS switches to `power-saver`, on the charger to
+  `balanced`. See or change it: `powerprofilesctl`, `powerprofilesctl set performance`.
 - **Sound:** `alsamixer` sets the volume (M = mute on/off, Esc = quit);
   `speaker-test -c 2 -t wav -l 1` says "front left, front right".
 - **Power off:** `poweroff`.
@@ -156,7 +158,7 @@ internet), then sets it up as an installed system:
 | File system | Btrfs, subvolumes `@ @home @var_log @var_cache @swap`, `noatime,compress=zstd:1`. |
 | Hibernation | A swap file the size of RAM in `@swap`; `systemctl hibernate` works. |
 | Boot menu | GRUB (UEFI). With Windows on the disk, the menu shows for 5 s with a Windows entry. |
-| Tuning | zram, TLP, thermald, small journal, size trimming for future packages. |
+| Tuning | zram, power-profiles-daemon + mipOS power rules, thermald, small journal, size trimming for future packages. |
 
 Log: `/var/log/mipos-install.log` (copied to the new system). The disk space used
 is shown at the end and saved in `/var/log/mipos-install-size.txt`.
@@ -176,7 +178,8 @@ in Windows (admin): `reg add HKLM\System\CurrentControlSet\Control\TimeZoneInfor
 ## Size trimming
 
 `archiso/airootfs/etc/pacman.d/mipos-noextract.conf` lists files pacman
-leaves out: documentation, man/info pages, translations, firmware for chips
+leaves out: documentation, man/info pages, translations, C headers and static
+libraries (only for compiling), most terminal descriptions, firmware for chips
 mipOS doesn't use (cameras, sound DSPs, server network cards) and kernel
 drivers for hardware it doesn't support (AMD/NVIDIA graphics, non-Intel
 Wi-Fi, most Ethernet cards except Intel and Realtek, webcams, rare file
@@ -184,11 +187,15 @@ systems...). After each build, `scripts/25-check-modules.sh` checks that
 every driver in `MUST_HAVE_MODULES` (mipos.conf) is there and can load, and
 fails the build if not.
 
+Intel Wi-Fi firmware comes in many versions per chip; after every kernel or
+firmware update, `/usr/local/sbin/mipos-trim-wifi-firmware` (a pacman hook)
+keeps only the two newest versions the kernel can load.
+
 To get something back, put `!` in front of its pattern (or delete the line)
 and rebuild. On an installed system, reinstall the package afterwards
 (`sudo pacman -S <package>`).
 
-The size report compares every build with `reports/size-A1.txt`.
+The size report compares every build with the report set in `SIZE_BASELINE` (mipos.conf); old reports are kept in `reports/`.
 
 ## Milestones
 
@@ -217,7 +224,8 @@ Full test checklist (A2–A4): [TESTING.md](TESTING.md).
   `noatime,compress=zstd:1`, no snapshots; hibernation swap file (size of RAM).
   Optional LUKS2 encryption (argon2id) of everything except `/boot`.
   Bootloader: GRUB (Secure Boot off).
-- **Light:** zram (zstd, 50% of RAM), TLP + thermald, journal max 50 MB,
+- **Light:** zram (zstd, 50% of RAM), power-profiles-daemon + mipOS power rules
+  (power-saver on battery, USB/PCI/SATA/sound power saving) + thermald, journal max 50 MB,
   short stop timeout, unneeded timers off, kernel options
   `quiet loglevel=3 nowatchdog zswap.enabled=0`.
 - **Size:** no docs/man pages/translations, only Intel firmware

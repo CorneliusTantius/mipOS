@@ -1,0 +1,24 @@
+#!/bin/sh
+# mipos-power-source: power settings for the current power source.
+#   on battery:  power mode "power-saver", PCIe link power saving "powersupersave"
+#   on charger:  power mode "balanced",    PCIe link power saving "default"
+# Runs at start and whenever the charger is plugged in or out
+# (mipos-power-source.service, started by /etc/udev/rules.d/50-mipos-power.rules).
+# Change the mode by hand any time: powerprofilesctl set performance
+on_ac=0
+found=0
+for s in /sys/class/power_supply/*; do
+    [ "$(cat "$s/type" 2>/dev/null)" = Mains ] || continue
+    found=1
+    [ "$(cat "$s/online" 2>/dev/null)" = 1 ] && on_ac=1
+done
+[ "$found" = 1 ] || on_ac=1          # no charger info (desktop, VM): like on charger
+
+if [ "$on_ac" = 1 ]; then source=charger; profile=balanced; aspm=default
+else source=battery; profile=power-saver; aspm=powersupersave; fi
+
+powerprofilesctl set "$profile" 2>/dev/null || true
+if [ -w /sys/module/pcie_aspm/parameters/policy ]; then
+    echo "$aspm" >/sys/module/pcie_aspm/parameters/policy 2>/dev/null || true
+fi
+echo "mipOS power: on ${source}: power mode ${profile}, PCIe ASPM ${aspm}"
