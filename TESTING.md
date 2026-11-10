@@ -1,8 +1,10 @@
-# Testing mipOS (A2–A4)
+# Testing mipOS (ThinkPad L14 Gen 5)
 
-Everything here runs on your computer in a virtual machine (VM), except the
-last part (real laptop). Do the parts in order. Write down anything that looks
-different from "Expected" and send it, with the full error message.
+mipOS is built for the **Lenovo ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5
+135U**. Most tests run in a virtual machine (VM) on any Linux computer; the last
+part runs on the ThinkPad itself, because Wi-Fi, sound, graphics firmware and
+the webcam only exist there. Do the parts in order. Write down anything that
+looks different from "Expected" and send it, with the full error message.
 
 ## 0. Preparation (once)
 
@@ -79,20 +81,31 @@ different from "Expected" and send it, with the full error message.
 | 4.8 | `sudo systemctl hibernate` | Screen goes black, VM window closes (or stays black) |
 | 4.9 | Close the window if still open, then `scripts/test-vm.sh --no-iso` (encrypted: type the password) | The screen from 4.7 comes back, still logged in |
 
-## Real laptop (when the VM tests pass)
+## On the ThinkPad L14 Gen 5 (when the VM tests pass)
 
-Write the ISO to a USB stick (all data on the stick is erased; replace
-`/dev/sdX` with your stick, check with `lsblk` first):
-`sudo dd if=out/download/iso/<name>.iso of=/dev/sdX bs=4M status=progress oflag=sync`.
-Start the laptop from the stick (UEFI, Secure Boot off).
+Write the ISO to a USB stick (everything on the stick is erased; find the
+stick's name with `lsblk` first, e.g. `/dev/sdb`):
+
+```bash
+sudo dd if=out/download/iso/mipos-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
+```
+
+Secure Boot must be off (once: **F1** at start → *Security* → *Secure Boot* →
+*Off*, **F10** to save). Then plug in the stick, start the laptop, press **F12**
+and pick the USB stick.
 
 | # | Do this | Expected |
 |---|---|---|
-| L.1 | `iwctl station wlan0 scan`, `iwctl station wlan0 get-networks` | Your network is listed |
-| L.2 | `iwctl station wlan0 connect "Name"`, password, then `ping -c 3 archlinux.org` | `3 received` |
-| L.3 | `alsamixer` (M = unmute, arrows = volume, Esc), then `speaker-test -c 2 -t wav -l 1` | "Front left, front right" from the speakers |
-| L.4 | Unplug the charger, wait 3 s, `powerprofilesctl get` | `power-saver`; plug in again: `balanced` |
-| L.5 | `ls /usr/lib/firmware/intel/iwlwifi` and Wi-Fi still works | Only `iwlwifi-ma-b0-gf-a0-*` files (this laptop's Wi-Fi chip) |
-| L.6 | `ls /dev/video*` | `/dev/video0` (and more): the webcam driver is loaded |
-| L.7 | `journalctl -k -b \| grep -i 'firmware.*failed'` | No output: no firmware file is missing |
-| L.8 | Plug in your phone, turn on USB tethering, `ip link` | A new network card (e.g. `enp...u1`), and `ping -c 3 archlinux.org` works |
+| L.1 | Watch the start | mipOS starts, screen sharp, `[root@mipos ~]#` |
+| L.2 | `journalctl -k -b \| grep -iE 'guc\|huc\|dmc'` | Lines saying the `i915/mtl_...` firmware was loaded (graphics firmware works) |
+| L.3 | `journalctl -k -b \| grep -i 'firmware.*failed'` | No output: no firmware file is missing |
+| L.4 | `iwctl station wlan0 scan`, then `iwctl station wlan0 get-networks` | Your network is listed |
+| L.5 | `iwctl station wlan0 connect "Name"`, password, then `ping -c 3 archlinux.org` | `3 received` |
+| L.6 | `ls /sys/class/bluetooth` | `hci0` (the Bluetooth chip is running) |
+| L.7 | `alsamixer` (M = unmute, arrows = volume, Esc), then `speaker-test -c 2 -t wav -l 1` | "Front left, front right" from the speakers |
+| L.8 | `ls /dev/video*` | `/dev/video0` (and more): the webcam driver is loaded |
+| L.9 | Unplug the charger, wait 3 s, `powerprofilesctl get` | `power-saver`; plug in again: `balanced` |
+| L.10 | `cat /sys/class/power_supply/BAT0/capacity` | Battery charge in % |
+| L.11 | Plug in your phone, turn on USB tethering, `ip link` | A new network card (e.g. `enp...u1`); `ping -c 3 archlinux.org` works |
+| L.12 | Touchpad, TrackPoint, Fn keys (volume, brightness) | All react (brightness: screen gets darker/brighter) |
+| L.13 | Optional: install on the laptop with `mipos-install` (only if you're ready to erase its disk, or use free space next to Windows) | Installs; after restart everything above still works |

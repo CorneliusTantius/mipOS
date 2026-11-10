@@ -175,6 +175,8 @@ sr_mod
 cdrom
 dm_mod
 dm_crypt
+# (the live system's start-up asks for dm_snapshot)
+dm_snapshot
 zram
 vfat
 nls_utf8

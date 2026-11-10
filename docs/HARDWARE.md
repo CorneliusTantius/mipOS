@@ -27,6 +27,7 @@ Two words first:
 | Thunderbolt 4 / USB-C (incl. external screens) | `thunderbolt`, `ucsi_acpi`, `typec_displayport` | none |
 | CPU fixes (microcode) | | `intel-ucode/06-aa-04` |
 | Extras | USB sticks, USB headsets (`snd_usb_audio`), phone USB tethering and USB-Ethernet adapters, Windows partitions (NTFS), QEMU virtual machines (virtio) | |
+| Not included | AI chip (NPU, `intel_vpu`), fingerprint and smartcard readers, Bluetooth programs (`bluez`: add with `sudo pacman -S bluez bluez-utils`) | |
 
 Everything else (other Wi-Fi brands, AMD/NVIDIA graphics, other laptops'
 chips...) is removed.
