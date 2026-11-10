@@ -14,7 +14,7 @@ same.
 | **Made for** | ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U. Other hardware can be added: [docs/HARDWARE.md](docs/HARDWARE.md) |
 | **Base** | Arch Linux (official packages, updated with `pacman`), x86_64, UEFI only |
 | **Interface** | Text only (no desktop) |
-| **Network** | Wi-Fi with `iwctl`, cable automatic, phone USB tethering |
+| **Network** | Wi-Fi with `iwctl`, cable automatic, phone USB tethering; Bluetooth with `bluetoothctl` |
 | **Install** | Erase the disk, or use free space next to Windows; optional disk encryption; hibernation |
 | **Battery** | power-saver on battery, device power saving, zram, thermald |
 | **Size** | ISO about 240 MB; installed system about 430 MB plus a swap file the size of RAM (each build's size report shows the exact numbers) |
@@ -27,7 +27,7 @@ Earlier versions (Ubuntu-based, then Linux From Scratch) are in the git history.
 |---|---|
 | Graphics (Intel Meteor Lake), incl. external screens over USB-C / Thunderbolt | Works |
 | Wi-Fi (Intel AX211) | Works |
-| Bluetooth (Intel AX211) | Chip works; the Bluetooth programs aren't included (add: `sudo pacman -S bluez bluez-utils`) |
+| Bluetooth (Intel AX211) | Works (`bluetoothctl` to pair and connect) |
 | Sound: speakers, microphone, HDMI, USB headsets | Works (ALSA, `alsamixer`) |
 | Ethernet (Intel I219-LM) | Works |
 | Webcam | Works (driver loaded) |
@@ -68,6 +68,7 @@ entries and `pacman`: see [docs/HARDWARE.md](docs/HARDWARE.md).
 |---|---|
 | Wi-Fi | `iwctl`, then `station wlan0 scan`, `station wlan0 get-networks`, `station wlan0 connect "Name"`, `exit` |
 | Check the internet | `ping -c 3 archlinux.org` |
+| Bluetooth | `bluetoothctl`, then `scan on`, `pair <address>`, `connect <address>`, `exit` (keyboards and mice work right away; Bluetooth headphones also need a sound server such as PipeWire, not included yet) |
 | Update everything | `sudo pacman -Syu` |
 | Install a program | `sudo pacman -S <name>` (search: `pacman -Ss <word>`) |
 | Volume / test speakers | `alsamixer` (M = mute, Esc = quit) / `speaker-test -c 2 -t wav -l 1` |

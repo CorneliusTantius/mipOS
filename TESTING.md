@@ -24,6 +24,7 @@ looks different from "Expected" and send it, with the full error message.
 | 2.2 | `ping -c 3 archlinux.org` | `3 received` |
 | 2.3 | `swapon --show` | A line with `/dev/zram0` |
 | 2.4 | `systemctl is-active iwd power-profiles-daemon thermald` | `active` (thermald may be `inactive` in a VM) |
+| 2.4a | `systemctl is-active bluetooth` | `inactive` is fine in a VM (no Bluetooth chip); on the laptop: `active` |
 | 2.4b | `powerprofilesctl get`; `journalctl -b -u mipos-power-source` | `balanced` (a VM counts as "on charger"); the log says `mipOS power: on charger` |
 | 2.5 | `systemctl --failed` | `0 loaded units listed` (thermald failing in a VM is OK) |
 | 2.6 | `poweroff` | VM window closes |
@@ -101,7 +102,7 @@ and pick the USB stick.
 | L.3 | `journalctl -k -b \| grep -i 'firmware.*failed'` | No output: no firmware file is missing |
 | L.4 | `iwctl station wlan0 scan`, then `iwctl station wlan0 get-networks` | Your network is listed |
 | L.5 | `iwctl station wlan0 connect "Name"`, password, then `ping -c 3 archlinux.org` | `3 received` |
-| L.6 | `ls /sys/class/bluetooth` | `hci0` (the Bluetooth chip is running) |
+| L.6 | `bluetoothctl show`, then `bluetoothctl scan on` (wait 10 s, Ctrl+C) | `Powered: yes`; nearby Bluetooth devices are listed |
 | L.7 | `alsamixer` (M = unmute, arrows = volume, Esc), then `speaker-test -c 2 -t wav -l 1` | "Front left, front right" from the speakers |
 | L.8 | `ls /dev/video*` | `/dev/video0` (and more): the webcam driver is loaded |
 | L.9 | Unplug the charger, wait 3 s, `powerprofilesctl get` | `power-saver`; plug in again: `balanced` |

@@ -20,6 +20,9 @@ iwd
 wireless-regdb
 # zram: compressed swap in RAM
 zram-generator
+# Bluetooth programs: the bluetooth service and bluetoothctl (pair, connect)
+bluez
+bluez-utils
 # Sound: firmware for Intel sound chips (SOF), their settings (UCM), and
 # alsamixer/speaker-test to set the volume and test speakers
 sof-firmware
