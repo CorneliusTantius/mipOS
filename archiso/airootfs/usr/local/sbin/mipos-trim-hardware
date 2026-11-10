@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# mipos-trim-hardware: delete kernel drivers and firmware this laptop doesn't use.
+#
+# Keeps:
+#   drivers   named in /etc/mipos/keep-modules, plus every driver they need
+#   firmware  matching /etc/mipos/keep-firmware; for Intel Wi-Fi only the two
+#             newest versions the kernel can load
+# Runs automatically after kernel and firmware installs/updates (pacman hook
+# 70-mipos-trim-hardware.hook), and is safe to run by hand any time.
+# A line with only "*" in a keep file switches that part off (keep all).
+# MIPOS_ROOT=/some/folder works on another system folder (for tests).
+set -euo pipefail
+
+root=${MIPOS_ROOT:-}
+conf="${root}/etc/mipos"
+fw="${root}/usr/lib/firmware"
+
+read_list() { [[ -f $1 ]] && sed -e 's/#.*//' -e 's/[[:space:]]//g' -e '/^$/d' "$1" || true; }
+mib() { echo $(( ($1 + 524288) / 1048576 )); }
+
+# ---------------------------------------------------------------- drivers
+trim_modules() {
+    local kdir=$1 kver name f d removed=0 freed=0
+    kver=${kdir%/}; kver=${kver##*/}
+    declare -A path=() keep=() builtin=()
+    while IFS= read -r f; do
+        name=${f##*/}; name=${name%%.ko*}; path[${name//-/_}]=${f}
+    done < <(find "${kdir}/kernel" -name '*.ko*' 2>/dev/null)
+    (( ${#path[@]} )) || return 0
+    if [[ -f ${kdir}/modules.builtin ]]; then
+        while IFS= read -r f; do name=${f##*/}; name=${name%%.ko*}; builtin[${name//-/_}]=1; done <"${kdir}/modules.builtin"
+    fi
+    # Wanted drivers, then everything they depend on (also "softdep" helpers).
+    local -a todo=()
+    mapfile -t todo < <(read_list "${conf}/keep-modules" | tr '-' '_')
+    while (( ${#todo[@]} )); do
+        name=${todo[-1]}; unset 'todo[-1]'
+        [[ -n ${keep[${name}]:-} ]] && continue
+        if [[ -z ${path[${name}]:-} ]]; then
+            [[ -n ${builtin[${name}]:-} ]] || echo "  note: driver '${name}' not found in kernel ${kver}"
+            continue
+        fi
+        keep[${name}]=1
+        for d in $(modinfo -F depends "${path[${name}]}" 2>/dev/null | tr ',' ' ') \
+                 $(modinfo -F softdep "${path[${name}]}" 2>/dev/null | tr ' ' '\n' | grep -v ':$' || true); do
+            d=${d//-/_}
+            [[ -n ${path[${d}]:-} && -z ${keep[${d}]:-} ]] && todo+=("${d}")
+        done
+    done
+    for name in "${!path[@]}"; do
+        [[ -n ${keep[${name}]:-} ]] && continue
+        freed=$(( freed + $(stat -c %s "${path[${name}]}") ))
+        rm -f "${path[${name}]}"
+        removed=$((removed + 1))
+    done
+    find "${kdir}/kernel" -type d -empty -delete 2>/dev/null || true
+    depmod -b "${root:-/}" "${kver}" 2>/dev/null || depmod "${kver}"
+    echo "drivers (kernel ${kver}): kept ${#keep[@]}, removed ${removed} ($(mib "${freed}") MiB)"
+}
+
+# ---------------------------------------------------------------- firmware
+trim_firmware() {
+    local -a pats=()
+    local f rel p ok removed=0 freed=0
+    mapfile -t pats < <(read_list "${conf}/keep-firmware")
+    while IFS= read -r -d '' f; do
+        rel=${f#"${fw}/"}
+        ok=0
+        for p in "${pats[@]}"; do
+            # shellcheck disable=SC2053
+            [[ ${rel} == ${p} ]] && { ok=1; break; }
+        done
+        (( ok )) && continue
+        freed=$(( freed + $(stat -c %s "${f}") ))
+        rm -f "${f}"
+        removed=$((removed + 1))
+    done < <(find "${fw}" -type f -print0)
+    echo "firmware: removed ${removed} files ($(mib "${freed}") MiB)"
+}
+
+# Intel Wi-Fi: per chip keep the two newest versions the driver can load
+# (newer files than the kernel supports are useless; older ones are spares).
+trim_wifi_versions() {
+    local dir="${fw}/intel/iwlwifi" names max_num max_core f base key kind max kept ver removed=0
+    [[ -d ${dir} ]] || return 0
+    names="$(find "${root}"/usr/lib/modules/*/kernel/drivers/net/wireless/intel/iwlwifi \
+                 -name '*.ko*' -exec modinfo -F firmware {} \; 2>/dev/null || true)"
+    max_num="$(grep -oE -- '-[0-9]+\.ucode$' <<<"${names}" | tr -dc '0-9\n' | sort -n | tail -n1 || true)"
+    max_core="$(grep -oE -- '-c[0-9]+\.ucode$' <<<"${names}" | tr -dc '0-9\n' | sort -n | tail -n1 || true)"
+    [[ -n ${max_num} ]] || return 0
+    declare -A groups=()
+    for f in "${dir}"/iwlwifi-*.ucode*; do
+        [[ -e ${f} ]] || continue
+        base=${f##*/}
+        if [[ ${base} =~ ^(iwlwifi-.+)-(c?)([0-9]+)\.ucode(\.[a-z]+)?$ ]]; then
+            groups["${BASH_REMATCH[1]}|${BASH_REMATCH[2]}"]+="${BASH_REMATCH[3]} ${base}"$'\n'
+        fi
+    done
+    for key in "${!groups[@]}"; do
+        kind=${key##*|}; max=${max_num}; [[ ${kind} == c ]] && max=${max_core}
+        [[ -n ${max} ]] || continue
+        kept=0
+        while read -r ver base; do
+            [[ -n ${base} ]] || continue
+            if (( ver <= max && kept < 2 )); then kept=$((kept + 1))
+            else rm -f "${dir}/${base}"; removed=$((removed + 1)); fi
+        done < <(printf '%s' "${groups[${key}]}" | sort -rn)
+    done
+    echo "Intel Wi-Fi: removed ${removed} unusable/old versions (driver loads up to -${max_num} / -c${max_core:-none})"
+}
+
+# ---------------------------------------------------------------- main
+if read_list "${conf}/keep-modules" | grep -qx '\*'; then
+    echo "drivers: keeping all (keep-modules contains *)"
+else
+    for k in "${root}"/usr/lib/modules/*/; do
+        [[ -d ${k}kernel ]] && trim_modules "${k}"
+    done
+fi
+if [[ -d ${fw} ]]; then
+    if read_list "${conf}/keep-firmware" | grep -qx '\*'; then
+        echo "firmware: keeping all (keep-firmware contains *)"
+    else
+        trim_firmware
+    fi
+    trim_wifi_versions
+    # Links that pointed to removed files, and empty folders.
+    find "${fw}" -xtype l -delete 2>/dev/null || true
+    find "${fw}" -mindepth 1 -type d -empty -delete 2>/dev/null || true
+fi

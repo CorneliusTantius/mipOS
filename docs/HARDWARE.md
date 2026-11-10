@@ -1,129 +1,138 @@
-# Adding drivers and firmware for other hardware
+# Hardware: what mipOS supports, and adding more
 
-mipOS is trimmed for **Intel laptops**: to stay small it leaves out drivers and
-firmware for most other hardware. Everything left out can be added back with
+mipOS is built for **one laptop: Lenovo ThinkPad L14 Gen 5 (21L2) with an
+Intel Core Ultra 5 135U** (Meteor Lake). To stay small it keeps only the
+drivers and firmware this laptop uses. Anything else can be added back with
 pacman (needs internet). This page shows how.
 
 Two words first:
 
 | Word | Meaning |
 |---|---|
-| **driver** (kernel module) | The part of the kernel that runs one kind of device, e.g. `rtw89` for some Realtek Wi-Fi cards. Comes with the `linux` package. |
-| **firmware** | A small program the driver loads into the device itself. Comes in `linux-firmware-*` packages (one per brand). |
+| **driver** (kernel module) | The part of the kernel that runs one kind of device, e.g. `iwlwifi` for the Wi-Fi card. Comes with the `linux` package. |
+| **firmware** | A small program the driver loads into the device itself. Comes in `linux-firmware-*` packages (one per brand), `sof-firmware` (sound) and `intel-ucode` (CPU fixes). |
 
-Most devices need **both**. mipOS leaves out both for non-Intel hardware, in
-two different ways:
+## What works out of the box
 
-- **Firmware packages for other brands are simply not installed.**
-  `sudo pacman -S linux-firmware-realtek` adds one.
-- **Drivers (and a few Intel firmware files) are removed while unpacking**,
-  by the size-trimming rules (`NoExtract`) in `/etc/pacman.conf`. Installing
-  again does nothing until the rule is switched off. Then reinstall the package
-  the files come from.
+| Part | Driver | Firmware |
+|---|---|---|
+| Graphics (Meteor Lake) | `i915` | `i915/mtl_*` |
+| Wi-Fi: Intel AX211 | `iwlwifi`, `iwlmvm` | `iwlwifi-ma-b0-gf-a0-*` |
+| Bluetooth: Intel AX211 | `btusb`, `btintel` | `intel/ibt-0180-0041` |
+| Sound (speakers, mic, HDMI) | SOF Meteor Lake, Conexant codec | `sof-ipc4/mtl`, `sof-hda-generic` topologies |
+| Ethernet: Intel I219-LM | `e1000e` | none |
+| Disk: NVMe | built in | none |
+| Webcam | `uvcvideo` | none |
+| Touchpad, TrackPoint, keyboard, ThinkPad buttons | `i2c_hid_acpi`, `psmouse`, built in, `thinkpad_acpi` | none |
+| Thunderbolt 4 / USB-C (incl. external screens) | `thunderbolt`, `ucsi_acpi`, `typec_displayport` | none |
+| CPU fixes (microcode) | | `intel-ucode/06-aa-04` |
+| Extras | USB sticks, USB headsets (`snd_usb_audio`), phone USB tethering and USB-Ethernet adapters, Windows partitions (NTFS), QEMU virtual machines (virtio) | |
 
-All commands below are for the **installed** mipOS. On the live USB stick,
-changes are lost at restart; there, use a cable or Intel Wi-Fi to install, and
-add hardware support afterwards.
+Everything else (other Wi-Fi brands, AMD/NVIDIA graphics, other laptops'
+chips...) is removed.
+
+## How the trimming works
+
+Two lists decide what stays:
+
+- `/etc/mipos/keep-modules`: driver names, one per line. Drivers they need
+  are kept automatically.
+- `/etc/mipos/keep-firmware`: firmware file patterns (inside
+  `/usr/lib/firmware`).
+
+After every install or update of the kernel or a firmware package, a pacman
+hook runs `/usr/local/sbin/mipos-trim-hardware`, which deletes every driver and
+firmware file not on the lists. So **to add something: put it on the list, then
+reinstall the package**, and the trimming keeps it from then on. Future updates
+keep your change.
 
 ## 1. Find out what's missing
 
 | # | Do this | What it tells you |
 |---|---|---|
-| 1 | `journalctl -k -b \| grep -i firmware` | Lines like `Direct firmware load for rtw89/rtw8852b_fw.bin failed` name the missing firmware file. |
-| 2 | `sudo pacman -S pciutils usbutils`, then `lspci -k` and `lsusb` | Lists your devices. In `lspci -k`, a device without a `Kernel driver in use:` line has no driver. |
+| 1 | `journalctl -k -b \| grep -i firmware` | Lines like `Direct firmware load for rtw89/rtw8852b_fw.bin failed` name a missing firmware file. |
+| 2 | `sudo pacman -S pciutils usbutils`, then `lspci -k` and `lsusb` | Lists your devices. In `lspci -k`, `Kernel modules:` names the driver a device needs; no `Kernel driver in use:` line means it's not loaded. |
 | 3 | `ip link` | Lists network cards. No `wlan0`/`wlp...` line = no Wi-Fi driver. |
 
-## 2. Which brand needs what
+To find a driver's name for a USB device, search the web for its ID from
+`lsusb` (e.g. `0bda:8153`) plus "linux driver".
 
-| Your device | Firmware package | Driver rule to switch off (step 3) |
-|---|---|---|
-| Realtek Wi-Fi or Bluetooth | `linux-firmware-realtek` | Wi-Fi cards |
-| Qualcomm Atheros Wi-Fi or Bluetooth | `linux-firmware-atheros` | Wi-Fi cards |
-| MediaTek / Ralink Wi-Fi or Bluetooth | `linux-firmware-mediatek` | Wi-Fi cards |
-| Broadcom Wi-Fi | `linux-firmware-broadcom` | Wi-Fi cards |
-| Marvell Wi-Fi | `linux-firmware-marvell` | Wi-Fi cards |
-| Realtek Ethernet (cable) | `linux-firmware-realtek` (driver already included) | none |
-| Other Ethernet (Broadcom, Atheros, Aquantia...) | the brand's package, if the driver asks for one | Ethernet cards |
-| AMD Radeon graphics (new) | `linux-firmware-amdgpu` | Graphics |
-| AMD Radeon graphics (old, before ~2012) | `linux-firmware-radeon` | Graphics |
-| NVIDIA graphics (open driver nouveau) | `linux-firmware-nvidia` | Graphics |
-| Cirrus Logic sound (some laptops' speakers) | `linux-firmware-cirrus` | none |
-| Intel camera (IPU), Intel AI chip (NPU) | none (it's in `linux-firmware-intel`) | Intel firmware extras |
-| Webcam (USB), TV tuner, other media devices | none, usually | Media devices |
-| Anything else / not sure | `linux-firmware-other` | All drivers |
+## 2. Add a driver
 
-Several firmware packages at once is fine:
-`sudo pacman -S linux-firmware-realtek linux-firmware-mediatek`.
+```bash
+sudo nano /etc/mipos/keep-modules
+```
 
-## 3. Switch off a trimming rule
+Add the driver's name on a new line (e.g. `rtw89_8852be`), save (Ctrl+O,
+Enter) and close (Ctrl+X). Then unpack the kernel's drivers again; the
+trimming now keeps yours:
 
-The rules are in `/etc/pacman.conf`, in the block that starts with
-`# mipOS size trimming`. Each `NoExtract = ...` line leaves out some files.
-Switching a rule off = putting `#` in front of it. The commands below do that
-for you (they only touch lines containing the text shown).
+```bash
+sudo pacman -S linux
+```
 
-**First, always make a backup:**
+Then restart: `sudo reboot`.
+
+## 3. Add firmware
+
+If the device's firmware comes from another brand, install that package:
+
+| Your device | Firmware package |
+|---|---|
+| Realtek Wi-Fi / Bluetooth / Ethernet | `linux-firmware-realtek` |
+| Qualcomm Atheros Wi-Fi / Bluetooth | `linux-firmware-atheros` |
+| MediaTek / Ralink Wi-Fi / Bluetooth | `linux-firmware-mediatek` |
+| Broadcom Wi-Fi | `linux-firmware-broadcom` |
+| Marvell Wi-Fi | `linux-firmware-marvell` |
+| AMD Radeon graphics | `linux-firmware-amdgpu` (new) or `linux-firmware-radeon` (old) |
+| NVIDIA graphics (nouveau) | `linux-firmware-nvidia` |
+| Cirrus Logic sound | `linux-firmware-cirrus` |
+| Other Intel chips (other laptops, cameras, NPU...) | already installed: `linux-firmware-intel` |
+| Anything else | `linux-firmware-other` |
+
+Then put the firmware files on the keep list. The missing-file message from
+step 1 shows the name; a pattern with `*` covers a whole folder:
+
+```bash
+sudo nano /etc/mipos/keep-firmware
+```
+
+For example add `rtw89/*` (all Realtek rtw89 Wi-Fi firmware), save, close, and
+install or reinstall the package so the files are unpacked again:
+
+```bash
+sudo pacman -S linux-firmware-realtek
+```
+
+Then restart: `sudo reboot`.
+
+## 4. Turn the trimming off completely
+
+For a laptop that isn't the ThinkPad L14 Gen 5, or while finding out what a
+device needs: keep **everything** by putting a line with only `*` in both lists.
+
+```bash
+echo '*' | sudo tee -a /etc/mipos/keep-modules /etc/mipos/keep-firmware
+```
+
+```bash
+sudo pacman -S linux linux-firmware-intel sof-firmware intel-ucode
+```
+
+Install other brands' firmware packages (step 3) as needed, then
+`sudo reboot`. Undo: delete the `*` lines and run the `pacman -S` command again.
+
+## 5. Other things mipOS leaves out
+
+Documentation, man pages, translations, C headers and static libraries (only
+needed to compile programs), and most terminal descriptions are left out by the
+rules in `/etc/pacman.conf` (block `# mipOS size trimming`). To get one back,
+put `#` in front of its `NoExtract` line, then reinstall the packages it belongs
+to. For example, to compile programs (gcc, make, npm native modules):
 
 ```bash
 sudo cp /etc/pacman.conf /etc/pacman.conf.backup
 ```
-
-Then pick what you need:
-
-| What | Command (switches the rule off) | Then reinstall |
-|---|---|---|
-| Wi-Fi cards (all brands) | `sudo sed -i '/^NoExtract = .*net\/wireless/s/^/#/' /etc/pacman.conf` | `sudo pacman -S linux` |
-| Ethernet cards (all brands) | `sudo sed -i '/^NoExtract = .*net\/ethernet/s/^/#/' /etc/pacman.conf` | `sudo pacman -S linux` |
-| Graphics (AMD, NVIDIA, others) | `sudo sed -i '/^NoExtract = .*gpu\/drm/s/^/#/' /etc/pacman.conf` | `sudo pacman -S linux` |
-| Media devices (webcams, TV) | `sudo sed -i '/^NoExtract = .*drivers\/media/s/^/#/' /etc/pacman.conf` | `sudo pacman -S linux` |
-| **All drivers** (simplest; about +80 MB) | `sudo sed -i '/^NoExtract = .*usr\/lib\/modules/s/^/#/' /etc/pacman.conf` | `sudo pacman -S linux` |
-| Intel firmware extras (camera, NPU, server cards) | `sudo sed -i '/^NoExtract = .*usr\/lib\/firmware/s/^/#/' /etc/pacman.conf` | `sudo pacman -S linux-firmware-intel` |
-
-Then:
-
-1. Install the firmware package from the table in step 2 (if any).
-2. Restart: `sudo reboot`.
-3. Check again with step 1.
-
-Reinstalling `linux` also rebuilds the start-up system (initramfs) by itself.
-Future kernel updates keep your change, because the rule stays switched off.
-
-**Undo** (back to the trimmed setup):
-
-```bash
-sudo cp /etc/pacman.conf.backup /etc/pacman.conf
-```
-
-```bash
-sudo pacman -S linux linux-firmware-intel
-```
-
-## 4. Intel Wi-Fi: keeping all firmware versions
-
-Intel Wi-Fi works out of the box. To save space, mipOS keeps only the two
-newest firmware versions per Wi-Fi chip that the kernel can load (a pacman hook
-runs `/usr/local/sbin/mipos-trim-wifi-firmware` after kernel and firmware
-updates). If you ever need all versions (for example while testing an older
-kernel):
-
-```bash
-sudo mv /etc/pacman.d/hooks/90-mipos-trim-wifi-firmware.hook /root/
-```
-
-```bash
-sudo pacman -S linux-firmware-intel
-```
-
-To trim again: move the file back to `/etc/pacman.d/hooks/` and run
-`sudo mipos-trim-wifi-firmware`.
-
-## 5. Other things mipOS leaves out
-
-The same rules also leave out documentation, man pages, translations, C
-headers and static libraries (only needed to compile programs), and most
-terminal descriptions. To get one back, switch off its line in
-`/etc/pacman.conf` the same way, then reinstall the packages it belongs to.
-For example, to compile programs (gcc, make, npm native modules):
 
 ```bash
 sudo sed -i '/^NoExtract = usr\/include\|^NoExtract = usr\/lib\/\*\.a/s/^/#/' /etc/pacman.conf

@@ -1,7 +1,10 @@
 # mipOS
 
 mipOS is a personal, light, battery-friendly Linux system based on
-[Arch Linux](https://archlinux.org). It is text-only (no desktop), uses
+[Arch Linux](https://archlinux.org), built for **one laptop: Lenovo ThinkPad
+L14 Gen 5 (Intel Core Ultra 5 135U)**: it keeps only the drivers and firmware
+that laptop uses (other hardware can be added back, see
+[docs/HARDWARE.md](docs/HARDWARE.md)). It is text-only (no desktop), uses
 systemd, and comes as a **live ISO** with its own small text installer,
 `mipos-install`. The ISO is built on GitHub with **archiso**, Arch's official
 ISO builder, from the files in this repo, so every rebuild is the same.
@@ -61,7 +64,7 @@ scripts/               The build steps, numbered, run in order
   get-iso.sh             download the newest ISO from GitHub and check it
   test-vm.sh             start the ISO (or, with --no-iso, the installed system) in a VM
   make-test-disk.sh      new VM test disk: "empty" or "windows" (fake Windows, for dual boot)
-docs/HARDWARE.md       Adding drivers/firmware for non-Intel hardware
+docs/HARDWARE.md       What hardware works, and adding drivers/firmware for more
 reports/               Size reports kept for comparison (size-A1.txt = first build)
 .github/workflows/     The GitHub build (manual start only)
 out/                   Everything the build makes (not stored in git)
@@ -178,27 +181,32 @@ in Windows (admin): `reg add HKLM\System\CurrentControlSet\Control\TimeZoneInfor
 
 ## Size trimming
 
-`archiso/airootfs/etc/pacman.d/mipos-noextract.conf` lists files pacman
-leaves out: documentation, man/info pages, translations, C headers and static
-libraries (only for compiling), most terminal descriptions, firmware for chips
-mipOS doesn't use (cameras, sound DSPs, server network cards) and kernel
-drivers for hardware it doesn't support (AMD/NVIDIA graphics, non-Intel
-Wi-Fi, most Ethernet cards except Intel and Realtek, webcams, rare file
-systems...). After each build, `scripts/25-check-modules.sh` checks that
-every driver in `MUST_HAVE_MODULES` (mipos.conf) is there and can load, and
-fails the build if not.
+Two mechanisms keep mipOS small:
 
-Intel Wi-Fi firmware comes in many versions per chip; after every kernel or
-firmware update, `/usr/local/sbin/mipos-trim-wifi-firmware` (a pacman hook)
-keeps only the two newest versions the kernel can load.
+1. **Only this laptop's drivers and firmware.** `archiso/airootfs/etc/mipos/keep-modules`
+   and `keep-firmware` list what the ThinkPad L14 Gen 5 uses (plus USB sticks,
+   disk encryption, VM testing, webcam, phone tethering, USB sound, NTFS).
+   After every kernel or firmware install or update, a pacman hook runs
+   `/usr/local/sbin/mipos-trim-hardware`, which deletes all other drivers and
+   firmware (and Intel Wi-Fi firmware versions the kernel can't load). This
+   works the same on the live ISO and the installed system.
+2. **No documentation and developer files.**
+   `archiso/airootfs/etc/pacman.d/mipos-noextract.conf` lists files pacman
+   leaves out: documentation, man/info pages, translations, C headers and
+   static libraries (only for compiling), most terminal descriptions, GRUB's
+   old-BIOS parts.
 
-**Other hardware (non-Intel Wi-Fi, AMD/NVIDIA graphics, webcams...)**: drivers
-and firmware for it can be added back on an installed system with pacman;
-step-by-step commands are in [docs/HARDWARE.md](docs/HARDWARE.md) (also on the
-system itself: `less /usr/share/mipos/HARDWARE.md`).
+After each build, `scripts/25-check-modules.sh` checks that every driver in
+`MUST_HAVE_MODULES` and every firmware file in `MUST_HAVE_FIRMWARE`
+(mipos.conf) is there and can load, and fails the build if not.
 
-To change what the ISO leaves out, put `!` in front of a pattern (or delete the
-line) and rebuild.
+**Other hardware** (another laptop, other Wi-Fi brands, AMD/NVIDIA graphics...):
+add its drivers and firmware on an installed system with two list entries and
+pacman: [docs/HARDWARE.md](docs/HARDWARE.md) (also on the system itself:
+`less /usr/share/mipos/HARDWARE.md`).
+
+To change what the ISO keeps, edit the keep lists or the NoExtract rules and
+rebuild.
 
 The size report compares every build with the report set in `SIZE_BASELINE` (mipos.conf); old reports are kept in `reports/`.
 

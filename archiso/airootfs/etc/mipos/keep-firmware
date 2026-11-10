@@ -1,0 +1,25 @@
+# mipOS keeps ONLY these firmware files (in /usr/lib/firmware). Every other
+# firmware file is deleted after firmware or kernel installs and updates by
+# /usr/local/sbin/mipos-trim-hardware (pacman hook 70-mipos-trim-hardware).
+# Patterns are shell patterns; * also matches across folders.
+#
+# Add firmware: add a line, then reinstall its package, e.g.
+#   sudo pacman -S linux-firmware-intel
+# Keep ALL firmware: put a line with only * , then reinstall the firmware packages.
+# See /usr/share/mipos/HARDWARE.md.
+
+# --- ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U (Meteor Lake) ---
+# Graphics: Meteor Lake (i915): display (DMC), GuC, HuC, GSC
+i915/mtl_*
+# Wi-Fi: Intel AX211 (Meteor Lake CNVi, chip "ma-b0-gf-a0")
+intel/iwlwifi/iwlwifi-ma-b0-gf-a0*
+# Bluetooth: Intel AX211
+intel/ibt-0180-0041.*
+# Sound: Sound Open Firmware for Meteor Lake, and its generic topology
+intel/sof-ipc4/mtl/*
+intel/sof-ipc4-lib/mtl/*
+intel/sof-ipc4-tplg/sof-hda-generic*
+# CPU fixes (microcode): family 6, model 0xAA, stepping 4
+intel-ucode/06-aa-04*
+# Wi-Fi radio rules per country
+regulatory.db*

@@ -39,12 +39,14 @@ for m in ${MUST_HAVE_MODULES}; do
 done
 echo "${#broken[@]} rarely used modules can't load because a module they need was trimmed (expected, harmless)."
 
-# 3. Firmware for Intel graphics, Wi-Fi and sound is there.
-for fw in i915 xe intel/iwlwifi intel/sof-ipc4; do
-    [[ -d "${root}/usr/lib/firmware/${fw}" ]] || { echo "MISSING firmware: ${fw}"; failed=1; }
+# 3. The firmware files this laptop loads at start are there
+#    (as a file or a link; usually compressed: name.zst).
+for fw in ${MUST_HAVE_FIRMWARE}; do
+    f="${root}/usr/lib/firmware/${fw}"
+    [[ -e ${f} || -e ${f}.zst || -e ${f}.xz ]] || { echo "MISSING firmware: ${fw}"; failed=1; }
 done
 
-# 4. Intel Wi-Fi firmware was trimmed, but every chip still has a file.
+# 4. Intel Wi-Fi firmware was trimmed, but a file is left.
 n_wifi="$(find "${root}/usr/lib/firmware/intel/iwlwifi" -name '*.ucode*' | wc -l)"
 echo "${n_wifi} Intel Wi-Fi firmware files kept"
 (( n_wifi > 0 )) || { echo "MISSING: Intel Wi-Fi firmware (all trimmed?)"; failed=1; }

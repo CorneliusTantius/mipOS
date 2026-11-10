@@ -92,4 +92,7 @@ Start the laptop from the stick (UEFI, Secure Boot off).
 | L.2 | `iwctl station wlan0 connect "Name"`, password, then `ping -c 3 archlinux.org` | `3 received` |
 | L.3 | `alsamixer` (M = unmute, arrows = volume, Esc), then `speaker-test -c 2 -t wav -l 1` | "Front left, front right" from the speakers |
 | L.4 | Unplug the charger, wait 3 s, `powerprofilesctl get` | `power-saver`; plug in again: `balanced` |
-| L.5 | `ls /usr/lib/firmware/intel/iwlwifi \| wc -l` and Wi-Fi still works | About 100 files (was ~230) |
+| L.5 | `ls /usr/lib/firmware/intel/iwlwifi` and Wi-Fi still works | Only `iwlwifi-ma-b0-gf-a0-*` files (this laptop's Wi-Fi chip) |
+| L.6 | `ls /dev/video*` | `/dev/video0` (and more): the webcam driver is loaded |
+| L.7 | `journalctl -k -b \| grep -i 'firmware.*failed'` | No output: no firmware file is missing |
+| L.8 | Plug in your phone, turn on USB tethering, `ip link` | A new network card (e.g. `enp...u1`), and `ping -c 3 archlinux.org` works |
