@@ -253,7 +253,7 @@ out/                   Everything the build makes (not stored in git)
 
 | Keys | Does |
 |---|---|
-| **Ctrl+Space** | Launcher (type, Enter) |
+| **Ctrl+Space** or **Super+Space** | Launcher (type, Enter); the red dot on the bar opens it too |
 | **Alt+Enter** | Terminal (foot) |
 | **Alt+Q** | Close the window |
 | **Alt+arrows** | Move focus between windows (they scroll sideways) |

@@ -16,6 +16,7 @@ window#waybar {
 }
 
 /* Every module is a black pill with a thin grey outline */
+#custom-launcher,
 #workspaces,
 #layout,
 #clock,
@@ -30,7 +31,17 @@ window#waybar {
   padding: 0 14px;
 }
 
-/* Tag dots */
+/* The red dot opens the launcher */
+#custom-launcher {
+  color: #d71921;
+  padding: 0 12px;
+}
+
+#custom-launcher:hover {
+  color: #ffffff;
+}
+
+/* Tag dots: white = current, grey = others */
 #workspaces {
   padding: 0 6px;
 }
@@ -48,11 +59,11 @@ window#waybar {
 }
 
 #workspaces button.visible {
-  color: #ffffff;
+  color: #b3b3b3;
 }
 
 #workspaces button.active {
-  color: #d71921;
+  color: #ffffff;
 }
 
 #workspaces button.urgent {

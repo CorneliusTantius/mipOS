@@ -10,9 +10,16 @@
   "margin-right": 14,
   "spacing": 10,
 
-  "modules-left": ["mango/workspaces", "mango/layout"],
+  "modules-left": ["custom/launcher", "mango/workspaces", "mango/layout"],
   "modules-center": ["clock"],
   "modules-right": ["bluetooth", "network", "backlight", "battery"],
+
+  // The red dot: click to open the launcher (same as Ctrl+Space)
+  "custom/launcher": {
+    "format": "●",
+    "on-click": "fuzzel",
+    "tooltip": false
+  },
 
   // Tags as dots: filled = current, hollow = has windows
   "mango/workspaces": {
