@@ -361,7 +361,19 @@ stop_spinner() {
     return 0
 }
 
+# Safety net: a command failed where the installer didn't expect it.
+# In the main script: show the error box with the line number. Inside an
+# install step or a $( ): only log it; the step itself reports the failure.
+on_error() {   # on_error CODE LINE COMMAND
+    if [[ ${BASHPID} != "${MAIN_PID}" ]]; then
+        log "Failed (code $1) at line $2: $3"
+        return 0
+    fi
+    die "Unexpected error (code $1) at line $2 of mipos-install, while running: $3"
+}
+
 die() {
+    trap - ERR
     log "ERROR: $*"
     stop_spinner
     if interactive; then
@@ -484,6 +496,21 @@ wifi_menu() {
     fi
 }
 
+show_connection() {   # which network cards are connected, and their addresses
+    local dev kind addr ssid
+    while read -r dev addr; do
+        kind="cable"
+        if [[ -e /sys/class/net/${dev}/wireless ]]; then
+            kind="Wi-Fi"
+            ssid="$(iwctl station "${dev}" show 2>/dev/null | sed -e 's/\x1b\[[0-9;]*m//g' \
+                    | awk '/Connected network/ {sub(/.*Connected network[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); print}')"
+            [[ -n ${ssid} ]] && kind="Wi-Fi \"${ssid}\""
+        fi
+        dim "Using ${kind} (${dev}, address ${addr%/*})"
+    done < <(ip -4 -o addr show scope global 2>/dev/null | awk '{print $2, $4}')
+    return 0
+}
+
 step_network() {
     NET_OK=no; WIFI_USED=no
     if [[ ${UNATTENDED} == yes ]]; then
@@ -493,8 +520,8 @@ step_network() {
                 if ! wait_online 10 && [[ -n ${ANS[WIFI_SSID]:-} ]]; then
                     wifi_connect "$(wifi_dev)" "${ANS[WIFI_SSID]}" "${ANS[WIFI_PASSWORD]:-}" && WIFI_USED=yes || true
                 fi
-                online && NET_OK=yes
-                return ;;
+                if online; then NET_OK=yes; fi
+                return 0 ;;
             *) die "NETWORK must be auto or skip." ;;
         esac
     fi
@@ -504,8 +531,9 @@ step_network() {
         if wait_online 5; then
             stop_spinner; NET_OK=yes
             good "Connected to the internet."
-            sleep 1
-            return
+            show_connection
+            pause
+            return 0
         fi
         stop_spinner
         say "Not connected to the internet." \
@@ -719,7 +747,7 @@ step_disk() {
         *) die "MODE must be erase or free." ;;
     esac
     WINDOWS=no
-    has_windows "${ANS[DISK]}" && WINDOWS=yes
+    if has_windows "${ANS[DISK]}"; then WINDOWS=yes; fi
 }
 
 # ---------------------------------------------------------------------
@@ -1148,6 +1176,7 @@ main() {
     [[ ${UNATTENDED} == yes ]] && load_answers "${CONFIG_FILE}"
     export TERM=${TERM:-linux}
     [[ ${UNATTENDED} == no && -t 0 && -t 1 ]] && INTERACTIVE=yes
+    trap 'on_error $? ${LINENO} "${BASH_COMMAND}"' ERR
     trap 'UI_INT=1' INT                   # Ctrl+C on a question: "Quit?"
     trap 'ui_restore; exit 1' TERM        # "Yes, quit" from inside a question
     trap 'ui_restore' EXIT
