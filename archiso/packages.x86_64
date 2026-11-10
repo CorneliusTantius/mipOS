@@ -2,7 +2,7 @@
 # (keep notes on their own line). @KERNEL@ is replaced with KERNEL from
 # mipos.conf by scripts/10-make-profile.sh.
 
-# --- A1: the smallest system that boots -------------------------------
+# --- The smallest system that boots -------------------------------
 # Arch's minimal set: systemd, bash, coreutils, pacman...
 base
 # The Linux kernel
@@ -12,7 +12,7 @@ mkinitcpio
 # Lets the initramfs find and start the live system on the ISO
 mkinitcpio-archiso
 
-# --- A2: hardware, Wi-Fi, battery and memory --------------------------
+# --- Hardware, Wi-Fi, battery and memory --------------------------
 # Firmware (small programs loaded into chips) for Intel graphics, Wi-Fi, Bluetooth
 linux-firmware-intel
 # Wi-Fi: iwd connects ("iwctl"), wireless-regdb holds each country's radio rules
@@ -34,7 +34,7 @@ alsa-utils
 power-profiles-daemon
 thermald
 
-# --- A3: what mipos-install needs, and what the installed system keeps --
+# --- What mipos-install needs, and what the installed system keeps --
 # (The installer copies the live system to the disk, so everything the
 #  installed system needs must be on the ISO.)
 # Copying the system, partitions, file systems, encryption

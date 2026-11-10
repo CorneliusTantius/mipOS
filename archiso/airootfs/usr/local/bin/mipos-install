@@ -890,7 +890,7 @@ Windows found:  ${WINDOWS}"
 STATE="$(mktemp)"
 save() { printf '%s=%q\n' "$1" "$2" >>"${STATE}"; }
 STEP_NO=0
-STEPS=10
+STEPS=0     # set by install_system
 
 step() {   # step "title" function
     local title=$1 rc

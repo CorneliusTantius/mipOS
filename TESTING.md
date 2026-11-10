@@ -76,26 +76,26 @@ looks different from "Expected" and send it, with the full error message.
 | 4.5 | `poweroff`, then `scripts/test-vm.sh --no-iso` | GRUB menu waits 5 s and lists **mipOS** and **Windows Boot Manager** |
 | 4.6 | Pick mipOS | Boots to `mipos login:` (picking Windows fails: it's fake) |
 
-### A4c. Next to (fake) Ubuntu, without encryption
+### A4b. Next to (fake) Ubuntu, without encryption
 
 | # | Do this | Expected |
 |---|---|---|
-| 4.c1 | `scripts/make-test-disk.sh ubuntu` | Prints the fake Ubuntu layout with ~31 GB free |
-| 4.c2 | `scripts/test-vm.sh`, then `sgdisk -p /dev/nvme0n1` | Partitions 1 (EFI) and 2 (Ubuntu); **write down their Start/End numbers** |
-| 4.c3 | `mipos-install`, disk `/dev/nvme0n1`: the menu offers **Use the 31 GB of free space**; encryption **No** | Summary says "free space ... everything else is kept", "Windows found: no" |
-| 4.c4 | Finish the install, answer **No** to restart, then `sgdisk -p /dev/nvme0n1` | Partitions 1–2 **exactly as in 4.c2**, plus 3 (`mipOS EFI`) and 4 (`mipOS`) |
-| 4.c5 | `mount /dev/nvme0n1p2 /mnt && cat /mnt/home/ubuntu-user/keep-me.txt && umount /mnt` | "This is the fake Ubuntu user's file..." (Ubuntu's files untouched) |
-| 4.c6 | `poweroff`, then `scripts/test-vm.sh --no-iso` | GRUB menu waits 5 s and lists **mipOS** and **Ubuntu 24.04.1 LTS** |
-| 4.c7 | Pick mipOS, log in | Works (picking Ubuntu fails: it's fake) |
-| 4.c8 | `lsblk -f` | `nvme0n1p3` vfat on `/boot`, `nvme0n1p4` btrfs on `/`; `nvme0n1p1`/`p2` (Ubuntu) not mounted |
+| 4.7 | `scripts/make-test-disk.sh ubuntu` | Prints the fake Ubuntu layout with ~31 GB free |
+| 4.8 | `scripts/test-vm.sh`, then `sgdisk -p /dev/nvme0n1` | Partitions 1 (EFI) and 2 (Ubuntu); **write down their Start/End numbers** |
+| 4.9 | `mipos-install`, disk `/dev/nvme0n1`: the menu offers **Use the 31 GB of free space**; encryption **No** | Summary says "free space ... everything else is kept", "Windows found: no" |
+| 4.10 | Finish the install, answer **No** to restart, then `sgdisk -p /dev/nvme0n1` | Partitions 1–2 **exactly as in 4.8**, plus 3 (`mipOS EFI`) and 4 (`mipOS`) |
+| 4.11 | `mount /dev/nvme0n1p2 /mnt && cat /mnt/home/ubuntu-user/keep-me.txt && umount /mnt` | "This is the fake Ubuntu user's file..." (Ubuntu's files untouched) |
+| 4.12 | `poweroff`, then `scripts/test-vm.sh --no-iso` | GRUB menu waits 5 s and lists **mipOS** and **Ubuntu 24.04.1 LTS** |
+| 4.13 | Pick mipOS, log in | Works (picking Ubuntu fails: it's fake) |
+| 4.14 | `lsblk -f` | `nvme0n1p3` vfat on `/boot`, `nvme0n1p4` btrfs on `/`; `nvme0n1p1`/`p2` (Ubuntu) not mounted |
 
-### A4b. Hibernation (on any installed VM from above; best with encryption)
+### A4c. Hibernation (on any installed VM from above; best with encryption)
 
 | # | Do this | Expected |
 |---|---|---|
-| 4.7 | Log in, type `echo hello from before hibernation` | Text on screen |
-| 4.8 | `sudo systemctl hibernate` | Screen goes black, VM window closes (or stays black) |
-| 4.9 | Close the window if still open, then `scripts/test-vm.sh --no-iso` (encrypted: type the password) | The screen from 4.7 comes back, still logged in |
+| 4.15 | Log in, type `echo hello from before hibernation` | Text on screen |
+| 4.16 | `sudo systemctl hibernate` | Screen goes black, VM window closes (or stays black) |
+| 4.17 | Close the window if still open, then `scripts/test-vm.sh --no-iso` (encrypted: type the password) | The screen from 4.15 comes back, still logged in |
 
 ### A5. Desktop choice (MangoWM + Waybar)
 

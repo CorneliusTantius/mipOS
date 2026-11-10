@@ -5,7 +5,7 @@
 #                                       Windows partition was shrunk: Windows EFI
 #                                       partition with a (fake) Windows boot manager,
 #                                       Windows partitions, and free space between
-#                                       (for "Use free space" / dual boot, A4)
+#                                       (for "Use free space" / dual boot)
 #   scripts/make-test-disk.sh ubuntu    a disk that looks like Ubuntu 24.04 installed
 #                                       with free space left over: Ubuntu's EFI
 #                                       partition (fake shim/GRUB) and an ext4

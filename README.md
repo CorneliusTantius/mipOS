@@ -249,14 +249,15 @@ out/                   Everything the build makes (not stored in git)
 - **Size:** no docs, man pages, translations, headers or static libraries; no
   developer tools by default (see [docs/HARDWARE.md](docs/HARDWARE.md) to add them).
 
-## Milestones
+## Status
 
-| | Goal | Status |
-|---|---|---|
-| **A1** | Minimal ISO built on GitHub, boots in a VM | Done |
-| **A2** | Battery tuning + size trimming, Wi-Fi/cable on the live system | Built; laptop checks open |
-| **A3** | `mipos-install`: erase the disk, with and without encryption | Unencrypted install tested; encryption open |
-| **A4** | Dual boot next to Windows + hibernation | Open |
+| Part | Status |
+|---|---|
+| Live ISO built on GitHub, boots in a VM | Done |
+| Battery tuning, size trimming, Wi-Fi and cable on the live system | Built; laptop checks open |
+| Install: erase the disk without encryption | Tested in the VM |
+| Install: with encryption, next to Windows or Ubuntu, hibernation | Open |
+| Optional MangoWM desktop | Built; not tested yet |
 
 Test steps for each: [TESTING.md](TESTING.md).
 
