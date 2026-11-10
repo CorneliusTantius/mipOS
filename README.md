@@ -266,7 +266,8 @@ out/                   Everything the build makes (not stored in git)
 
 Also installed with the desktop: PipeWire (sound), notifications (mako),
 screenshots (grim, slurp, wl-clipboard), brightness keys (brightnessctl) and
-udisks2 (`udisksctl mount -b /dev/sdb1` mounts a USB stick without root).
+udiskie (USB sticks mount by themselves under `/run/media/YOURNAME/`, with a
+notification; `udiskie-umount -a` unmounts them before you pull them out).
 Closing the lid puts the laptop to sleep (s2idle); `systemctl hibernate` still
 hibernates. No browser is included: add one with `pacman -S`.
 

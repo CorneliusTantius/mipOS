@@ -149,5 +149,5 @@ and pick the USB stick.
 | L.12 | Touchpad, TrackPoint, Fn keys (volume, brightness) | All react (brightness: screen gets darker/brighter) |
 | L.12a | Desktop installed: Fn volume, mute, mic mute and brightness keys; the bar's `VOL` and brightness numbers change | Each key reacts; volume changes sound loudness |
 | L.12b | Close the lid for 10 s, open it | The screen is off while closed, comes back instantly, still logged in (`journalctl -b \| grep -i 'suspend\|s2idle'` shows the sleep) |
-| L.12c | Plug in a USB stick, `lsblk`, then `udisksctl mount -b /dev/sdb1` (your stick's name) | Mounted under `/run/media/...`; `udisksctl unmount -b /dev/sdb1` when done |
+| L.12c | Desktop installed: plug in a USB stick | A notification says it was mounted; `lsblk` shows it under `/run/media/YOURNAME/...`. `udiskie-umount -a` unmounts it |
 | L.13 | Optional: install on the laptop with `mipos-install` (only if you're ready to erase its disk, or use free space next to Windows) | Installs; after restart everything above still works |
