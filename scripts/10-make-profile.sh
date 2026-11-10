@@ -36,7 +36,7 @@ install -D -m 644 "${REPO_DIR}/mipos.conf" "${PROFILE_DIR}/airootfs/usr/share/mi
 install -D -m 644 "${REPO_DIR}/docs/HARDWARE.md" "${PROFILE_DIR}/airootfs/usr/share/mipos/HARDWARE.md"
 
 # Anything still looking like @NAME@ is a typo or a missing setting.
-if leftovers="$(grep -rnoE '@[A-Z][A-Z_]+@' "${PROFILE_DIR}")"; then
+if leftovers="$(grep -rnoE --exclude-dir=desktop '@[A-Z][A-Z_]+@' "${PROFILE_DIR}")"; then
     die "Unfilled names in the profile:"$'\n'"${leftovers}"
 fi
 echo "Profile ready: ${PROFILE_DIR}"

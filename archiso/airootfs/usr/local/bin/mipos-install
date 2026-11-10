@@ -816,7 +816,7 @@ step_desktop() {
                 "window manager with scrolling windows), a status bar (Waybar), a launcher" \
                 "(Ctrl+Space) and the foot terminal, in a black-and-white look." \
                 "The desktop is downloaded now: the install takes a few minutes longer" \
-                "and uses roughly 600 MB of disk space. You can also add it later with:" \
+                "and uses roughly 650 MB of disk space. You can also add it later with:" \
                 "    sudo mipos-add-desktop"
             blank
             ANS[DESKTOP]="$(choose "How should ${DISTRO_NAME} be installed?" \

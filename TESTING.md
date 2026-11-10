@@ -111,6 +111,8 @@ Needs internet in the VM. Best on top of A3a (or run step 5.2 on an already inst
 | 5.5a | Press **Ctrl+Space**, type `foot`, Enter (Esc closes it). Repeat with **Super+Space** and by clicking the red dot on the bar | A black launcher with a red `>` prompt opens; Enter starts foot |
 | 5.5b | Look at the screen | Black background, thin red border on the focused window, rounded corners, floating Waybar pills (dots for tags, layout, clock, status). Screenshot welcome |
 | 5.5c | Open two terminals (Alt+Enter twice), then **Alt+Left/Right** | Windows sit side by side in a strip and scroll when focus moves (scroller layout) |
+| 5.5d | In a foot terminal: `wpctl status`, then `notify-send hello` | `wpctl status` lists PipeWire and the sound card; a black notification with a thin outline appears at the top right |
+| 5.5e | Press **Print**, drag over an area, then `wl-paste > /tmp/a.png && file /tmp/a.png` | `PNG image data` (the screenshot reached the clipboard) |
 | 5.6 | Quit MangoWM (default: **Super+M** (the Windows key); see `~/.config/mango/config.conf`) | Back at the text shell, no error |
 | 5.6b | In `~/.config/mango/config.conf` look for `exec_once=waybar` at the end | Present once |
 | 5.7 | Switch to tty2 (Ctrl+Alt+F2) and log in | Plain text shell, no desktop |
@@ -145,4 +147,7 @@ and pick the USB stick.
 | L.10 | `cat /sys/class/power_supply/BAT0/capacity` | Battery charge in % |
 | L.11 | Plug in your phone, turn on USB tethering, `ip link` | A new network card (e.g. `enp...u1`); `ping -c 3 archlinux.org` works |
 | L.12 | Touchpad, TrackPoint, Fn keys (volume, brightness) | All react (brightness: screen gets darker/brighter) |
+| L.12a | Desktop installed: Fn volume, mute, mic mute and brightness keys; the bar's `VOL` and brightness numbers change | Each key reacts; volume changes sound loudness |
+| L.12b | Close the lid for 10 s, open it | The screen is off while closed, comes back instantly, still logged in (`journalctl -b \| grep -i 'suspend\|s2idle'` shows the sleep) |
+| L.12c | Plug in a USB stick, `lsblk`, then `udisksctl mount -b /dev/sdb1` (your stick's name) | Mounted under `/run/media/...`; `udisksctl unmount -b /dev/sdb1` when done |
 | L.13 | Optional: install on the laptop with `mipos-install` (only if you're ready to erase its disk, or use free space next to Windows) | Installs; after restart everything above still works |

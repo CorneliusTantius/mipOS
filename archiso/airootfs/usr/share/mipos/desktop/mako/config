@@ -1,0 +1,19 @@
+# mipOS desktop: mako notifications. Black, white, red accent for urgent ones.
+# Copied to ~/.config/mako/ by mipos-add-desktop (only if you have none).
+# All options: man 5 mako
+font=JetBrains Mono 11
+background-color=#000000
+text-color=#ffffff
+border-color=#262626
+border-size=1
+border-radius=16
+padding=14
+margin=14
+width=340
+anchor=top-right
+layer=overlay
+default-timeout=5000
+
+[urgency=high]
+border-color=#d71921
+default-timeout=0

@@ -22,6 +22,7 @@ window#waybar {
 #clock,
 #bluetooth,
 #network,
+#wireplumber,
 #backlight,
 #battery {
   background: #000000;
@@ -79,8 +80,13 @@ window#waybar {
 }
 
 #bluetooth,
+#wireplumber,
 #backlight {
   color: #8c8c8c;
+}
+
+#wireplumber.muted {
+  color: #d71921;
 }
 
 #network.disconnected {

@@ -261,8 +261,16 @@ out/                   Everything the build makes (not stored in git)
 | **Super+N** | Switch layout (starts as scroller) |
 | **Super+R** | Reload the settings |
 | **Super+M** | Quit the desktop (back to the text shell) |
+| Fn keys | Brightness, volume, mute, microphone mute |
+| **Print** / **Shift+Print** | Screenshot of an area: to the clipboard / to `~/screenshot-DATE.png` |
 
-Settings are in `~/.config/mango`, `waybar`, `fuzzel` and `foot` (copies of
+Also installed with the desktop: PipeWire (sound), notifications (mako),
+screenshots (grim, slurp, wl-clipboard), brightness keys (brightnessctl) and
+udisks2 (`udisksctl mount -b /dev/sdb1` mounts a USB stick without root).
+Closing the lid puts the laptop to sleep (s2idle); `systemctl hibernate` still
+hibernates. No browser is included: add one with `pacman -S`.
+
+Settings are in `~/.config/mango`, `waybar`, `fuzzel`, `foot` and `mako` (copies of
 `/usr/share/mipos/desktop`). Colors: black, white, grey and red `#d71921`.
 
 ## Status

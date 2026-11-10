@@ -12,7 +12,7 @@
 
   "modules-left": ["custom/launcher", "mango/workspaces", "mango/layout"],
   "modules-center": ["clock"],
-  "modules-right": ["bluetooth", "network", "backlight", "battery"],
+  "modules-right": ["bluetooth", "network", "wireplumber", "backlight", "battery"],
 
   // The red dot: click to open the launcher (same as Ctrl+Space)
   "custom/launcher": {
@@ -56,6 +56,13 @@
     "format-wifi": "{essid}",
     "format-ethernet": "WIRED",
     "format-disconnected": "OFFLINE",
+    "tooltip": false
+  },
+
+  "wireplumber": {
+    "format": "VOL {volume}",
+    "format-muted": "MUTE",
+    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
     "tooltip": false
   },
 
