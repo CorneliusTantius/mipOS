@@ -184,8 +184,9 @@ scripts/test-vm.sh
 
 `test-vm.sh` boots the ISO with a 20 GB test disk (`out/vm/disk.qcow2`);
 `scripts/test-vm.sh --no-iso` boots the installed system on it.
-`scripts/make-test-disk.sh empty` gives a fresh disk, `scripts/make-test-disk.sh windows`
-a disk with a fake Windows (for dual boot tests). The full checklist is
+`scripts/make-test-disk.sh empty` gives a fresh disk; `windows` or `ubuntu`
+instead of `empty` gives a disk with a fake Windows or Ubuntu plus free space
+(for install-alongside tests). The full checklist is
 [TESTING.md](TESTING.md). In the VM, the laptop-only parts (Wi-Fi, sound,
 webcam) can't be tested; the checklist has a laptop section for those.
 
@@ -216,7 +217,7 @@ scripts/               Build steps (numbered, run in order) and helpers
   build.sh               runs 00 -> 30 (what GitHub runs)
   get-iso.sh             download the newest ISO from GitHub and check it
   test-vm.sh             start the ISO (or the installed system) in a VM
-  make-test-disk.sh      new VM test disk: "empty" or "windows"
+  make-test-disk.sh      new VM test disk: "empty", "windows" or "ubuntu"
 docs/HARDWARE.md       What hardware works, and adding drivers/firmware for more
 TESTING.md             Test checklist (VM and laptop)
 reports/               Size reports kept for comparison
