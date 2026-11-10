@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034
-# archiso profile settings for the mipOS live ISO.
-# Words between @ signs are filled in from mipos.conf by scripts/10-make-profile.sh.
+# archiso profile settings for the monarch live ISO.
+# Words between @ signs are filled in from monarch.conf by scripts/10-make-profile.sh.
 
 iso_name="@DISTRO_ID@"
-iso_label="MIPOS_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
+iso_label="MONARCH_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
 iso_publisher="@DISTRO_NAME@ <@DISTRO_URL@>"
 iso_application="@DISTRO_NAME@ live system and installer"
 iso_version="@DISTRO_VERSION@-$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y.%m.%d)"
@@ -19,8 +19,8 @@ kernel_params_x86_64="@LIVE_KERNEL_PARAMS@"
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/root"]="0:0:750"
-  ["/usr/local/bin/mipos-install"]="0:0:755"
-  ["/usr/local/sbin/mipos-trim-hardware"]="0:0:755"
-  ["/usr/local/sbin/mipos-power-source"]="0:0:755"
-  ["/usr/local/sbin/mipos-add-desktop"]="0:0:755"
+  ["/usr/local/bin/monarch-install"]="0:0:755"
+  ["/usr/local/sbin/monarch-trim-hardware"]="0:0:755"
+  ["/usr/local/sbin/monarch-power-source"]="0:0:755"
+  ["/usr/local/sbin/monarch-add-desktop"]="0:0:755"
 )

@@ -1,6 +1,6 @@
-# mipOS: after a kernel or firmware install/update, delete the drivers and
-# firmware this laptop doesn't use (lists: /etc/mipos/keep-modules and
-# /etc/mipos/keep-firmware). Runs after depmod (60-...) and before the
+# monarch: after a kernel or firmware install/update, delete the drivers and
+# firmware this laptop doesn't use (lists: /etc/monarch/keep-modules and
+# /etc/monarch/keep-firmware). Runs after depmod (60-...) and before the
 # start-up system (initramfs) is built (90-mkinitcpio-...).
 # Stays on the live and the installed system.
 [Trigger]
@@ -17,4 +17,4 @@ Description = Removing drivers and firmware this laptop doesn't use...
 When = PostTransaction
 Depends = kmod
 Depends = findutils
-Exec = /usr/local/sbin/mipos-trim-hardware
+Exec = /usr/local/sbin/monarch-trim-hardware

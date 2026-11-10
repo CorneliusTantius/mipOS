@@ -1,0 +1,12 @@
+# remove from airootfs!
+# Build-time only: put monarch's name into /etc/os-release.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = filesystem
+
+[Action]
+Description = Writing monarch /etc/os-release...
+When = PostTransaction
+Exec = /usr/bin/sh -c "rm -f /etc/os-release && cp /usr/share/monarch/os-release /etc/os-release"

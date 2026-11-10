@@ -1,6 +1,6 @@
-mipOS size report
+monarch size report
 Built:   2026-11-09 15:10 UTC
-ISO:     mipos-0.3-2026.11.09-x86_64.iso
+ISO:     monarch-0.3-2026.11.09-x86_64.iso
 Commit:  c389779702e49b2b8f45da7958c6cc4f02445b54
 
 --- Totals (MiB) ---                   now       A1   change

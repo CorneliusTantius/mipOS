@@ -1,5 +1,5 @@
-# mipOS desktop: mako notifications. Black, white, red accent for urgent ones.
-# Copied to ~/.config/mako/ by mipos-add-desktop (only if you have none).
+# monarch desktop: mako notifications. Black, white, red accent for urgent ones.
+# Copied to ~/.config/mako/ by monarch-add-desktop (only if you have none).
 # All options: man 5 mako
 font=JetBrains Mono 11
 background-color=#000000

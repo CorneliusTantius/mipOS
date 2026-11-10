@@ -83,7 +83,7 @@ menuentry 'Ubuntu' --class ubuntu --class gnu-linux --class os {
 	initrd	/boot/initrd.img-6.8.0-45-generic
 }
 GRUB
-    echo "This is the fake Ubuntu user's file. mipOS must not change it." >"${tree}/home/ubuntu-user/keep-me.txt"
+    echo "This is the fake Ubuntu user's file. monarch must not change it." >"${tree}/home/ubuntu-user/keep-me.txt"
     start="$(sgdisk -i 2 "${raw}" | awk '/First sector/ {print $3}')"
     mkfs.ext4 -F -q -E offset=$((start * 512)) -d "${tree}" "${raw}" $((16 * 1024 * 1024))k 2>/dev/null
     rm -rf "${tree}"
@@ -92,7 +92,7 @@ GRUB
     echo "Fake Ubuntu test disk ready (${size_gb} GB):"
     echo "  1    1 GB  Ubuntu's EFI partition (fake shim + GRUB in EFI/ubuntu)"
     echo "  2   16 GB  Ubuntu 24.04 (ext4, fake system + /home/ubuntu-user/keep-me.txt)"
-    echo "     ~31 GB  free space  <- mipOS goes here"
+    echo "     ~31 GB  free space  <- monarch goes here"
     exit 0
 fi
 
@@ -118,5 +118,5 @@ echo "Fake Windows test disk ready (${size_gb} GB):"
 echo "  1  100 MB  Windows EFI partition (with a fake Windows boot manager)"
 echo "  2   16 MB  Microsoft reserved"
 echo "  3   16 GB  Windows (C:)"
-echo "     ~31 GB  free space  <- mipOS goes here"
+echo "     ~31 GB  free space  <- monarch goes here"
 echo "  4  700 MB  Windows recovery"

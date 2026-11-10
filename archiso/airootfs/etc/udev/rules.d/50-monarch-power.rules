@@ -1,7 +1,7 @@
-# mipOS power saving (instead of TLP). Each rule saves a little battery.
+# monarch power saving (instead of TLP). Each rule saves a little battery.
 
-# Charger plugged in or out: switch power mode (see mipos-power-source).
-SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ACTION=="change", RUN+="/usr/bin/systemctl --no-block start mipos-power-source.service"
+# Charger plugged in or out: switch power mode (see monarch-power-source).
+SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ACTION=="change", RUN+="/usr/bin/systemctl --no-block start monarch-power-source.service"
 
 # USB devices may sleep when not in use...
 ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", TEST=="power/control", ATTR{power/control}="auto"

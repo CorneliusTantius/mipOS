@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Step 10: copy archiso/ to out/profile and fill in the @NAMES@ from mipos.conf.
+# Step 10: copy archiso/ to out/profile and fill in the @NAMES@ from monarch.conf.
 source "$(dirname "$0")/lib.sh"
 
 case "${SQUASHFS_COMPRESSION}" in
@@ -9,7 +9,7 @@ case "${SQUASHFS_COMPRESSION}" in
 esac
 
 # NoExtract rules (size trimming) go into the build's pacman.conf.
-NOEXTRACT="$(grep '^NoExtract' "${REPO_DIR}/archiso/airootfs/etc/pacman.d/mipos-noextract.conf")"
+NOEXTRACT="$(grep '^NoExtract' "${REPO_DIR}/archiso/airootfs/etc/pacman.d/monarch-noextract.conf")"
 [[ "${STRIP_DOCS}" == "yes" ]] || NOEXTRACT=""
 
 say "Copying archiso/ to ${PROFILE_DIR}"
@@ -18,7 +18,7 @@ mkdir -p "${OUT_DIR}"
 cp -a "${REPO_DIR}/archiso" "${PROFILE_DIR}"
 find "${PROFILE_DIR}" -name .keep -delete
 
-say "Filling in values from mipos.conf"
+say "Filling in values from monarch.conf"
 names=(DISTRO_NAME DISTRO_ID DISTRO_VERSION DISTRO_URL KERNEL LIVE_HOSTNAME
        LIVE_KERNEL_PARAMS SQUASHFS_OPTIONS NOEXTRACT JOURNAL_MAX_SIZE
        SERVICE_STOP_TIMEOUT ZRAM_SIZE_PERCENT ZRAM_COMPRESSION)
@@ -31,9 +31,9 @@ while IFS= read -r -d '' file; do
 done < <(find "${PROFILE_DIR}" -type f -print0)
 
 # The installer reads the same settings file; the hardware help page is
-# readable offline on the live and installed system (less /usr/share/mipos/HARDWARE.md).
-install -D -m 644 "${REPO_DIR}/mipos.conf" "${PROFILE_DIR}/airootfs/usr/share/mipos/mipos.conf"
-install -D -m 644 "${REPO_DIR}/docs/HARDWARE.md" "${PROFILE_DIR}/airootfs/usr/share/mipos/HARDWARE.md"
+# readable offline on the live and installed system (less /usr/share/monarch/HARDWARE.md).
+install -D -m 644 "${REPO_DIR}/monarch.conf" "${PROFILE_DIR}/airootfs/usr/share/monarch/monarch.conf"
+install -D -m 644 "${REPO_DIR}/docs/HARDWARE.md" "${PROFILE_DIR}/airootfs/usr/share/monarch/HARDWARE.md"
 
 # Anything still looking like @NAME@ is a typo or a missing setting.
 if leftovers="$(grep -rnoE --exclude-dir=desktop '@[A-Z][A-Z_]+@' "${PROFILE_DIR}")"; then

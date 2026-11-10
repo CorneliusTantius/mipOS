@@ -1,12 +1,12 @@
-# mipOS keeps ONLY these firmware files (in /usr/lib/firmware). Every other
+# monarch keeps ONLY these firmware files (in /usr/lib/firmware). Every other
 # firmware file is deleted after firmware or kernel installs and updates by
-# /usr/local/sbin/mipos-trim-hardware (pacman hook 70-mipos-trim-hardware).
+# /usr/local/sbin/monarch-trim-hardware (pacman hook 70-monarch-trim-hardware).
 # Patterns are shell patterns; * also matches across folders.
 #
 # Add firmware: add a line, then reinstall its package, e.g.
 #   sudo pacman -S linux-firmware-intel
 # Keep ALL firmware: put a line with only * , then reinstall the firmware packages.
-# See /usr/share/mipos/HARDWARE.md.
+# See /usr/share/monarch/HARDWARE.md.
 
 # --- ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U (Meteor Lake) ---
 # Graphics: Meteor Lake (i915): display (DMC), GuC, HuC, GSC

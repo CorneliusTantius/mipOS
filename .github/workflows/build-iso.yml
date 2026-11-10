@@ -1,4 +1,4 @@
-# Builds the mipOS live ISO on GitHub's servers with archiso.
+# Builds the monarch live ISO on GitHub's servers with archiso.
 #
 # Only runs when you start it: Actions tab -> "Build ISO" -> "Run workflow"
 # -> pick the branch under "Use workflow from" -> Run workflow.
@@ -8,7 +8,7 @@
 # inside an Arch Linux container (a small Arch system started just for the job).
 #
 # Result (Summary page of the run): the size report, and a download called
-# "mipos-iso" with the ISO, its checksum and the size report (kept 14 days).
+# "monarch-iso" with the ISO, its checksum and the size report (kept 14 days).
 #
 # Reuse between runs: downloaded packages are kept in GitHub's cache, so the
 # next build only downloads packages that changed. A fresh cache starts each week.
@@ -57,12 +57,12 @@ jobs:
 
       - name: Show the size report on the summary page
         run: |
-          { echo '## mipOS size report'; echo '```'; cat out/size-report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo '## monarch size report'; echo '```'; cat out/size-report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the ISO
         uses: actions/upload-artifact@v4
         with:
-          name: mipos-iso
+          name: monarch-iso
           path: |
             out/iso/*.iso
             out/iso/*.sha256

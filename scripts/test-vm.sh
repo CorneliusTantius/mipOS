@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Start a virtual machine (QEMU with UEFI firmware "OVMF") that imitates the
 # ThinkPad L14 Gen 5 as far as QEMU can (NVMe disk, Intel Ethernet and sound).
-#   scripts/test-vm.sh [path/to/mipos.iso]   start the ISO (default: the one in out/download/)
+#   scripts/test-vm.sh [path/to/monarch.iso]   start the ISO (default: the one in out/download/)
 #   scripts/test-vm.sh --no-iso              start the installed system on the test disk
 # The VM always has the test disk out/vm/disk.qcow2 (empty the first time).
-# Screen size: VM_RESOLUTION in mipos.conf (default 1280x720); one-off:
+# Screen size: VM_RESOLUTION in monarch.conf (default 1280x720); one-off:
 #   VM_RESOLUTION=1600x900 scripts/test-vm.sh
 # New test disk: scripts/make-test-disk.sh empty|windows
 source "$(dirname "$0")/lib.sh"
@@ -53,7 +53,7 @@ audio=(-audiodev none,id=snd)
 command -v pactl >/dev/null && pactl info >/dev/null 2>&1 && audio=(-audiodev pa,id=snd)
 
 say "Starting the VM from $([[ -n ${iso} ]] && basename "${iso}" || echo "the test disk") (close the window to stop it)"
-# Devices chosen to look like the ThinkPad L14 Gen 5, so mipOS uses the same
+# Devices chosen to look like the ThinkPad L14 Gen 5, so monarch uses the same
 # drivers as on the laptop: NVMe disk (nvme), Intel Ethernet (e1000e), Intel HD
 # Audio (snd_hda_intel), USB 3 (xhci), and the laptop's name in the firmware
 # tables. CPU: this computer's own (-cpu host). Graphics stay virtual (virtio):
@@ -64,7 +64,7 @@ exec qemu-system-x86_64 \
     -drive if=pflash,format=raw,readonly=on,file="${code}" \
     -drive if=pflash,format=raw,file="${vm}/OVMF_VARS.fd" \
     -drive file="${vm}/disk.qcow2",if=none,id=ssd,format=qcow2 \
-    -device nvme,serial=MIPOSTEST01,drive=ssd \
+    -device nvme,serial=MONARCHTEST01,drive=ssd \
     "${cdrom[@]}" \
     -nic user,model=e1000e \
     "${audio[@]}" -device intel-hda -device hda-duplex,audiodev=snd \

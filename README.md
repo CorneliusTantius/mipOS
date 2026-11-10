@@ -1,11 +1,11 @@
-# mipOS
+# monarch
 
 A small, battery-friendly, text-only Linux for **one laptop: the Lenovo
 ThinkPad L14 Gen 5 (21L2) with an Intel Core Ultra 5 135U** (Meteor Lake).
 
-mipOS is based on [Arch Linux](https://archlinux.org). It keeps only the
+monarch is based on [Arch Linux](https://archlinux.org). It keeps only the
 drivers and firmware this laptop uses, tunes it for battery life, and comes as
-a **live USB stick (ISO)** with its own text installer, `mipos-install`. The
+a **live USB stick (ISO)** with its own text installer, `monarch-install`. The
 ISO is built on GitHub from the files in this repo, so every rebuild is the
 same.
 
@@ -13,7 +13,7 @@ same.
 |---|---|
 | **Made for** | ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U. Other hardware can be added: [docs/HARDWARE.md](docs/HARDWARE.md) |
 | **Base** | Arch Linux (official packages, updated with `pacman`), x86_64, UEFI only |
-| **Interface** | Text only, or with the MangoWM desktop (Waybar bar, Ctrl+Space launcher, foot terminal, black-and-white look): chosen in the installer or added later with `sudo mipos-add-desktop` (needs internet) |
+| **Interface** | Text only, or with the MangoWM desktop (Waybar bar, Ctrl+Space launcher, foot terminal, black-and-white look): chosen in the installer or added later with `sudo monarch-add-desktop` (needs internet) |
 | **Network** | Wi-Fi with `iwctl`, cable automatic, phone USB tethering; Bluetooth with `bluetoothctl` |
 | **Install** | Erase the disk, or use free space next to Windows; optional disk encryption; hibernation |
 | **Battery** | power-saver on battery, device power saving, zram, thermald |
@@ -51,18 +51,18 @@ entries and `pacman`: see [docs/HARDWARE.md](docs/HARDWARE.md).
 2. **Write it to a USB stick** (everything on the stick is erased). Find the
    stick's name with `lsblk` (e.g. `/dev/sdb`), then:
    ```bash
-   sudo dd if=out/download/iso/mipos-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
+   sudo dd if=out/download/iso/monarch-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
    ```
 3. **Switch off Secure Boot** (once): start the laptop, press **F1** for the
    BIOS setup → *Security* → *Secure Boot* → *Off*, save with **F10**.
 4. **Start from the stick:** plug it in, start the laptop, press **F12** and
-   pick the USB stick. mipOS logs in as root by itself.
-5. **Install:** type `mipos-install` and answer the 8 questions (details in
-   [Installing](#installing-mipos-install)). Nothing changes on the disk until
+   pick the USB stick. monarch logs in as root by itself.
+5. **Install:** type `monarch-install` and answer the 8 questions (details in
+   [Installing](#installing-monarch-install)). Nothing changes on the disk until
    you type `yes` on the summary.
 6. Remove the stick, restart, log in with your user.
 
-## Using mipOS
+## Using monarch
 
 | Task | Command |
 |---|---|
@@ -74,12 +74,12 @@ entries and `pacman`: see [docs/HARDWARE.md](docs/HARDWARE.md).
 | Volume / test speakers | `alsamixer` (M = mute, Esc = quit) / `speaker-test -c 2 -t wav -l 1` |
 | Power mode | `powerprofilesctl` (see) / `powerprofilesctl set performance` (change); battery switches to power-saver by itself |
 | Hibernate | `systemctl hibernate` |
-| Hardware help | `less /usr/share/mipos/HARDWARE.md` |
+| Hardware help | `less /usr/share/monarch/HARDWARE.md` |
 | Power off / restart | `poweroff` / `reboot` |
 
-## Installing: mipos-install
+## Installing: monarch-install
 
-On the live system, type `mipos-install`. Its screens are plain text with
+On the live system, type `monarch-install`. Its screens are plain text with
 colors: arrow keys and Enter to pick, typing to search the long lists
 (language, keyboard, timezone), Esc to quit. It asks, in this order:
 
@@ -98,23 +98,23 @@ colors: arrow keys and Enter to pick, typing to search the long lists
 It **copies the live system** to the disk (so it works without internet), then
 sets it up as an installed system:
 
-| Part | What mipOS does |
+| Part | What monarch does |
 |---|---|
-| Partitions | Erase mode: 1 GB EFI partition + the rest for mipOS. Free-space mode: the same two partitions inside the largest free area; Windows' partitions and its EFI partition are never changed. |
-| Encryption | Optional LUKS2 (argon2id) on the mipOS partition. The EFI partition (kernel, boot menu) stays unencrypted. One password at start. |
+| Partitions | Erase mode: 1 GB EFI partition + the rest for monarch. Free-space mode: the same two partitions inside the largest free area; Windows' partitions and its EFI partition are never changed. |
+| Encryption | Optional LUKS2 (argon2id) on the monarch partition. The EFI partition (kernel, boot menu) stays unencrypted. One password at start. |
 | File system | Btrfs, subvolumes `@ @home @var_log @var_cache @swap`, `noatime,compress=zstd:1`. |
 | Hibernation | A swap file the size of RAM in `@swap`; `systemctl hibernate` works. |
 | Boot menu | GRUB (UEFI). With Windows on the disk, the menu shows for 5 s with a Windows entry. |
 | Battery and size | Same as the live system: power rules, zram, thermald, small journal; the hardware and size trimming keep working after updates. |
 
-The log is `/var/log/mipos-install.log` (copied to the new system); the disk
-space used is shown at the end and saved in `/var/log/mipos-install-size.txt`.
+The log is `/var/log/monarch-install.log` (copied to the new system); the disk
+space used is shown at the end and saved in `/var/log/monarch-install-size.txt`.
 
 Options:
 
-- `mipos-install --dry-run`: ask everything and show the summary, change nothing.
-- `mipos-install --config answers.conf`: unattended install. Start from
-  `/usr/share/mipos/answers.example`; it only installs with `CONFIRM=yes`.
+- `monarch-install --dry-run`: ask everything and show the summary, change nothing.
+- `monarch-install --config answers.conf`: unattended install. Start from
+  `/usr/share/monarch/answers.example`; it only installs with `CONFIRM=yes`.
 
 **Dual boot with Windows:** first, in Windows, open *Disk Management*, shrink
 the Windows partition (leave at least 13 GB + your RAM size free), and switch
@@ -123,23 +123,23 @@ clock in local time, Linux in UTC; if the clock is off after switching, run
 this once in Windows (admin):
 `reg add HKLM\System\CurrentControlSet\Control\TimeZoneInformation /v RealTimeIsUniversal /t REG_DWORD /d 1 /f`.
 
-## How mipOS stays small
+## How monarch stays small
 
 1. **Only this laptop's drivers and firmware.** Two lists say what to keep:
-   `archiso/airootfs/etc/mipos/keep-modules` (drivers) and `keep-firmware`
+   `archiso/airootfs/etc/monarch/keep-modules` (drivers) and `keep-firmware`
    (firmware files). After every kernel or firmware install or update, a
-   pacman hook runs `/usr/local/sbin/mipos-trim-hardware`, which deletes
+   pacman hook runs `/usr/local/sbin/monarch-trim-hardware`, which deletes
    everything not on the lists (and Intel Wi-Fi firmware versions the kernel
    can't load). Same on the live ISO and the installed system.
 2. **No documentation or developer files.** The rules in
-   `archiso/airootfs/etc/pacman.d/mipos-noextract.conf` make pacman skip
+   `archiso/airootfs/etc/pacman.d/monarch-noextract.conf` make pacman skip
    documentation, man pages, translations, C headers and static libraries, most
    terminal descriptions and GRUB's old-BIOS parts.
 3. **Light packages.** power-profiles-daemon instead of TLP (no perl), plain
    bash for the installer screens, no developer tools.
 
 Every build checks that each driver in `MUST_HAVE_MODULES` and each firmware
-file in `MUST_HAVE_FIRMWARE` (mipos.conf) is present and can load, and fails
+file in `MUST_HAVE_FIRMWARE` (monarch.conf) is present and can load, and fails
 if not. The size report compares each build with the one named in
 `SIZE_BASELINE`; older reports are in `reports/`.
 
@@ -151,7 +151,7 @@ The build runs only when you start it:
 2. Under **Use workflow from**, pick the branch, then **Run workflow**. It
    takes about 15–25 minutes.
 3. The finished run's **Summary** page shows the size report and has the
-   download **mipos-iso** (ISO + checksum + size report, kept 14 days).
+   download **monarch-iso** (ISO + checksum + size report, kept 14 days).
 
 From the terminal (GitHub CLI): `gh workflow run build-iso.yml --ref main`.
 
@@ -166,7 +166,7 @@ The ISO also runs in QEMU (with UEFI) on any Linux computer, for testing the
 installer without touching the laptop. The VM imitates the ThinkPad where QEMU
 can: NVMe disk, Intel Ethernet (e1000e), Intel HD Audio, USB 3, the laptop's
 name in the firmware tables, and (on the ThinkPad itself) its real CPU; the
-screen is 1280×720 (`VM_RESOLUTION` in mipos.conf). One-time setup (Ubuntu):
+screen is 1280×720 (`VM_RESOLUTION` in monarch.conf). One-time setup (Ubuntu):
 
 ```bash
 sudo apt install qemu-system-x86 qemu-utils ovmf gh gdisk dosfstools mtools
@@ -193,23 +193,23 @@ webcam) can't be tested; the checklist has a laptop section for those.
 ## Folders
 
 ```
-mipos.conf             All decisions in one file. The scripts read it.
-archiso/               The archiso profile (copied and filled in from mipos.conf)
+monarch.conf             All decisions in one file. The scripts read it.
+archiso/               The archiso profile (copied and filled in from monarch.conf)
   profiledef.sh          ISO name, boot method (UEFI), compression
   packages.x86_64        Packages on the ISO (and the installed system)
   pacman.conf            pacman settings used while building
   efiboot/               Boot menu of the ISO (systemd-boot)
   airootfs/              Files copied into the system (/etc/..., /usr/...)
-    etc/mipos/keep-modules, keep-firmware   this laptop's drivers and firmware
-    etc/pacman.d/mipos-noextract.conf       files pacman leaves out
-    etc/udev/rules.d/50-mipos-power.rules   battery saving rules
-    usr/local/bin/mipos-install             the installer
-    usr/local/sbin/mipos-trim-hardware      applies the keep lists
-    usr/local/sbin/mipos-power-source       battery / charger power mode
-    usr/share/mipos/answers.example         answers file for unattended installs
+    etc/monarch/keep-modules, keep-firmware   this laptop's drivers and firmware
+    etc/pacman.d/monarch-noextract.conf       files pacman leaves out
+    etc/udev/rules.d/50-monarch-power.rules   battery saving rules
+    usr/local/bin/monarch-install             the installer
+    usr/local/sbin/monarch-trim-hardware      applies the keep lists
+    usr/local/sbin/monarch-power-source       battery / charger power mode
+    usr/share/monarch/answers.example         answers file for unattended installs
 scripts/               Build steps (numbered, run in order) and helpers
   00-host-setup.sh       install archiso on the (Arch) build computer
-  10-make-profile.sh     copy archiso/ to out/profile, fill in values from mipos.conf
+  10-make-profile.sh     copy archiso/ to out/profile, fill in values from monarch.conf
   15-check-packages.sh   check every package exists in Arch's repos
   20-build-iso.sh        build the ISO with mkarchiso, write its checksum
   25-check-modules.sh    check the laptop's drivers and firmware survived the trimming
@@ -225,7 +225,7 @@ reports/               Size reports kept for comparison
 out/                   Everything the build makes (not stored in git)
 ```
 
-## Decisions (details in `mipos.conf`)
+## Decisions (details in `monarch.conf`)
 
 - **Hardware:** ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U only; drivers
   and firmware trimmed to this laptop (+ USB sticks, encryption, VM testing,
@@ -236,14 +236,14 @@ out/                   Everything the build makes (not stored in git)
 - **Interface:** text only (tty login, no greeter). Optional MangoWM + Waybar + fuzzel + foot, installed from the official repos on request, never part of the ISO. **Init:** systemd.
 - **Network:** iwd (Wi-Fi) + systemd-networkd + systemd-resolved.
 - **Live ISO:** logs in as root automatically on the first screen; xz compressed.
-- **Installer:** `mipos-install`, plain bash with colored text menus; unattended
+- **Installer:** `monarch-install`, plain bash with colored text menus; unattended
   mode with `--config`.
 - **Disk:** 1 GB EFI partition at `/boot` (kernel, not encrypted), Btrfs with
   subvolumes `@ @home @var_log @var_cache @swap`, `noatime,compress=zstd:1`, no
   snapshots; swap file the size of RAM for hibernation; optional LUKS2
   (argon2id) for everything except `/boot`. Boot loader: GRUB.
 - **Battery:** power-profiles-daemon (power-saver on battery, balanced on the
-  charger) + mipOS rules (USB, PCI, SATA, sound power saving, PCIe ASPM),
+  charger) + monarch rules (USB, PCI, SATA, sound power saving, PCIe ASPM),
   thermald, zram (zstd, 50% of RAM), journal max 50 MB, short stop timeout,
   unneeded timers off, kernel options `quiet loglevel=3 nowatchdog zswap.enabled=0`.
 - **Size:** no docs, man pages, translations, headers or static libraries; no
@@ -272,7 +272,7 @@ Closing the lid puts the laptop to sleep (s2idle); `systemctl hibernate` still
 hibernates. No browser is included: add one with `pacman -S`.
 
 Settings are in `~/.config/mango`, `waybar`, `fuzzel`, `foot` and `mako` (copies of
-`/usr/share/mipos/desktop`). Colors: black, white, grey and red `#d71921`.
+`/usr/share/monarch/desktop`). Colors: black, white, grey and red `#d71921`.
 
 ## Status
 
@@ -291,16 +291,16 @@ Test steps for each: [TESTING.md](TESTING.md).
 | Word | Meaning |
 |---|---|
 | **distribution (distro)** | A complete Linux system: kernel + programs + settings, ready to install. |
-| **Arch Linux** | The distro mipOS is built on. Small and always up to date ("rolling"). |
+| **Arch Linux** | The distro monarch is built on. Small and always up to date ("rolling"). |
 | **package / pacman** | A program ready to install / Arch's tool that installs, updates and removes packages. |
 | **AUR** | Arch User Repository: community build recipes, not official. Only used if approved per package. |
-| **kernel** | The core program that talks to the hardware. mipOS uses Arch's `linux`. |
+| **kernel** | The core program that talks to the hardware. monarch uses Arch's `linux`. |
 | **driver (kernel module)** | A piece of the kernel for one kind of hardware, loaded only when needed. |
 | **firmware** | A small program loaded into a chip (Wi-Fi, graphics, sound) when its driver starts. |
 | **initramfs** | A small start-up system loaded with the kernel; it finds the real system and starts it. |
 | **ISO / live system** | A file holding a bootable disk image / a system that runs straight from it, in memory, without installing. |
 | **archiso** | Arch's tool that turns a *profile* (the `archiso/` folder) into an ISO. |
-| **UEFI / Secure Boot** | The firmware that starts a PC (replaces old "BIOS") / a UEFI check that only allows signed boot loaders; mipOS needs it off. |
+| **UEFI / Secure Boot** | The firmware that starts a PC (replaces old "BIOS") / a UEFI check that only allows signed boot loaders; monarch needs it off. |
 | **NoExtract** | A pacman setting: matching files are not unpacked when a package is installed. |
 | **zram** | Compressed swap space inside RAM. |
 | **power-profiles-daemon / thermald** | Power modes (power-saver, balanced, performance) / Intel CPU temperature control. |

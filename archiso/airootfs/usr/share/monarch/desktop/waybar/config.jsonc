@@ -1,5 +1,5 @@
-// mipOS desktop: Waybar (Nothing-style: black pills, white text, red accent)
-// Copied to ~/.config/waybar/ by mipos-add-desktop (only if you have none).
+// monarch desktop: Waybar (Nothing-style: black pills, white text, red accent)
+// Copied to ~/.config/waybar/ by monarch-add-desktop (only if you have none).
 // Modules: https://github.com/Alexays/Waybar/wiki/Modules
 {
   "layer": "top",

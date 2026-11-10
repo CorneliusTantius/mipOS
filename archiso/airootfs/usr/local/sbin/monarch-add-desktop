@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # =====================================================================
-#  mipos-add-desktop: add the MangoWM desktop (needs internet)
+#  monarch-add-desktop: add the MangoWM desktop (needs internet)
 #
-#  Usage (as root):   mipos-add-desktop [USERNAME]
+#  Usage (as root):   monarch-add-desktop [USERNAME]
 #
-#  It installs the packages in DESKTOP_PACKAGES (mipos.conf), gives the user
-#  the mipOS settings for MangoWM, Waybar, the Ctrl+Space launcher (fuzzel)
+#  It installs the packages in DESKTOP_PACKAGES (monarch.conf), gives the user
+#  the monarch settings for MangoWM, Waybar, the Ctrl+Space launcher (fuzzel)
 #  and the foot terminal (~/.config/..., only files the user doesn't have
 #  yet), and starts the desktop when that user logs in on tty1. tty2 to tty6 stay plain text. Quitting MangoWM returns to the
 #  text shell. Run it again any time: it changes nothing twice.
@@ -13,17 +13,17 @@
 # =====================================================================
 set -Eeuo pipefail
 
-CONF=${MIPOS_CONF:-/usr/share/mipos/mipos.conf}
+CONF=${MONARCH_CONF:-/usr/share/monarch/monarch.conf}
 # shellcheck source=/dev/null
 source "${CONF}"
 
-[[ ${EUID} -eq 0 ]] || { echo "Run as root: sudo mipos-add-desktop"; exit 1; }
+[[ ${EUID} -eq 0 ]] || { echo "Run as root: sudo monarch-add-desktop"; exit 1; }
 
 user=${1:-${SUDO_USER:-}}
 if [[ -z ${user} ]]; then   # first normal user (the one the installer made)
     user="$(awk -F: '$3 >= 1000 && $3 < 60000 {print $1; exit}' /etc/passwd)"
 fi
-[[ -n ${user} ]] || { echo "No user found. Usage: mipos-add-desktop USERNAME"; exit 1; }
+[[ -n ${user} ]] || { echo "No user found. Usage: monarch-add-desktop USERNAME"; exit 1; }
 id "${user}" >/dev/null 2>&1 || { echo "No such user: ${user}"; exit 1; }
 home="$(getent passwd "${user}" | cut -d: -f6)"
 group="$(id -gn "${user}")"
@@ -35,10 +35,10 @@ pacman -S --needed --noconfirm ${DESKTOP_PACKAGES}
 echo "== Brightness keys need the video group"
 usermod -aG video "${user}"
 
-echo "== mipOS look and settings for ${user}"
-# Copies each program's settings (Nothing-style look) from /usr/share/mipos/desktop
+echo "== monarch look and settings for ${user}"
+# Copies each program's settings (Nothing-style look) from /usr/share/monarch/desktop
 # to ~/.config, but never over a file you already have.
-share=/usr/share/mipos/desktop
+share=/usr/share/monarch/desktop
 for f in mango/config.conf waybar/config.jsonc waybar/style.css fuzzel/fuzzel.ini foot/foot.ini mako/config; do
     dest="${home}/.config/${f}"
     if [[ ! -e ${dest} ]]; then
@@ -49,10 +49,10 @@ done
 
 echo "== Start on tty1 login"
 profile="${home}/.bash_profile"
-if ! grep -qs '# mipOS desktop' "${profile}"; then
+if ! grep -qs '# monarch desktop' "${profile}"; then
     cat >>"${profile}" <<'EOF'
 
-# mipOS desktop: start MangoWM when logging in on tty1 (tty2-6 stay text).
+# monarch desktop: start MangoWM when logging in on tty1 (tty2-6 stay text).
 # Quit MangoWM to come back to this shell. Delete these lines to turn it off.
 if [[ -z ${WAYLAND_DISPLAY:-} && ${XDG_VTNR:-} == 1 ]]; then
     mango

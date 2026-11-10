@@ -1,4 +1,4 @@
-# Answers for an unattended install:   mipos-install --config answers.conf
+# Answers for an unattended install:   monarch-install --config answers.conf
 # Copy this file, fill it in, and run the command above.
 # Add --dry-run to only check the answers without changing anything.
 #
@@ -13,7 +13,7 @@ UPDATE=yes                   # yes = update packages at the end (only with inter
 LOCALE=en_US.UTF-8
 KEYMAP=us
 TIMEZONE=UTC                 # e.g. Asia/Jakarta, Europe/Berlin
-HOSTNAME=mipos
+HOSTNAME=monarch
 FULLNAME="Test User"
 USERNAME=test
 PASSWORD="change-me"

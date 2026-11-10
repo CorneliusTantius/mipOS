@@ -8,8 +8,8 @@ PROFILE_DIR="${OUT_DIR}/profile"     # filled-in copy of archiso/
 WORK_DIR="${OUT_DIR}/work"           # mkarchiso's scratch folder
 ISO_DIR="${OUT_DIR}/iso"             # finished ISO + checksum
 
-# shellcheck source=../mipos.conf
-source "${REPO_DIR}/mipos.conf"
+# shellcheck source=../monarch.conf
+source "${REPO_DIR}/monarch.conf"
 
 say()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33mWARNING: %s\033[0m\n' "$*" >&2; }

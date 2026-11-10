@@ -1,10 +1,10 @@
 
   Welcome to @DISTRO_NAME@ @DISTRO_VERSION@ (live system).
 
-  Install:    mipos-install
+  Install:    monarch-install
   Wi-Fi:      iwctl station wlan0 connect "Network name"
               (cable connects by itself; the installer can also do Wi-Fi)
   Volume:     alsamixer
-  Hardware:   less /usr/share/mipos/HARDWARE.md (built for ThinkPad L14 Gen 5)
+  Hardware:   less /usr/share/monarch/HARDWARE.md (built for ThinkPad L14 Gen 5)
   Power off:  poweroff
 

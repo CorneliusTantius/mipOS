@@ -1,6 +1,6 @@
 # Packages on the live ISO, one per line. Lines starting with # are notes
 # (keep notes on their own line). @KERNEL@ is replaced with KERNEL from
-# mipos.conf by scripts/10-make-profile.sh.
+# monarch.conf by scripts/10-make-profile.sh.
 
 # --- The smallest system that boots -------------------------------
 # Arch's minimal set: systemd, bash, coreutils, pacman...
@@ -29,12 +29,12 @@ sof-firmware
 alsa-ucm-conf
 alsa-utils
 # Power modes (power-saver / balanced / performance) and Intel CPU
-# temperature control. mipOS adds its own rules for the rest (see
-# /etc/udev/rules.d/50-mipos-power.rules).
+# temperature control. monarch adds its own rules for the rest (see
+# /etc/udev/rules.d/50-monarch-power.rules).
 power-profiles-daemon
 thermald
 
-# --- What mipos-install needs, and what the installed system keeps --
+# --- What monarch-install needs, and what the installed system keeps --
 # (The installer copies the live system to the disk, so everything the
 #  installed system needs must be on the ISO.)
 # Copying the system, partitions, file systems, encryption

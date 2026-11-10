@@ -1,11 +1,11 @@
 [Unit]
-Description=mipOS power settings for battery or charger
+Description=monarch power settings for battery or charger
 After=power-profiles-daemon.service
 Wants=power-profiles-daemon.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/mipos-power-source
+ExecStart=/usr/local/sbin/monarch-power-source
 
 [Install]
 WantedBy=power-profiles-daemon.service

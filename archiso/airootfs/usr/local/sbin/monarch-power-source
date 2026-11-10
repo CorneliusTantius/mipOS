@@ -1,9 +1,9 @@
 #!/bin/sh
-# mipos-power-source: power settings for the current power source.
+# monarch-power-source: power settings for the current power source.
 #   on battery:  power mode "power-saver", PCIe link power saving "powersupersave"
 #   on charger:  power mode "balanced",    PCIe link power saving "default"
 # Runs at start and whenever the charger is plugged in or out
-# (mipos-power-source.service, started by /etc/udev/rules.d/50-mipos-power.rules).
+# (monarch-power-source.service, started by /etc/udev/rules.d/50-monarch-power.rules).
 # Change the mode by hand any time: powerprofilesctl set performance
 on_ac=0
 found=0
@@ -21,4 +21,4 @@ powerprofilesctl set "$profile" 2>/dev/null || true
 if [ -w /sys/module/pcie_aspm/parameters/policy ]; then
     echo "$aspm" >/sys/module/pcie_aspm/parameters/policy 2>/dev/null || true
 fi
-echo "mipOS power: on ${source}: power mode ${profile}, PCIe ASPM ${aspm}"
+echo "monarch power: on ${source}: power mode ${profile}, PCIe ASPM ${aspm}"

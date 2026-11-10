@@ -1,6 +1,6 @@
-# mipOS keeps ONLY these kernel drivers (modules), plus the drivers they need.
+# monarch keeps ONLY these kernel drivers (modules), plus the drivers they need.
 # Every other driver is deleted after each kernel install or update by
-# /usr/local/sbin/mipos-trim-hardware (pacman hook 70-mipos-trim-hardware).
+# /usr/local/sbin/monarch-trim-hardware (pacman hook 70-monarch-trim-hardware).
 # Drivers built into the kernel itself (keyboard, battery, USB, NVMe/SATA,
 # Btrfs, ext4...) always work and aren't listed here.
 #
@@ -8,7 +8,7 @@
 # A line with a "/" is a folder pattern (relative to the kernel's driver
 # folder), e.g. crypto/* keeps every driver in kernel/crypto.
 # Keep ALL drivers: put a line with only * , then: sudo pacman -S linux
-# See /usr/share/mipos/HARDWARE.md.
+# See /usr/share/monarch/HARDWARE.md.
 
 # --- ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U (Meteor Lake) ---
 # (every driver this laptop uses: graphics, Wi-Fi, Bluetooth, sound, Ethernet,

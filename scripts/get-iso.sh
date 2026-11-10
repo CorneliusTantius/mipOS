@@ -24,8 +24,8 @@ if [[ -f ${dest}/.run-id && $(<"${dest}/.run-id") == "${run_id}" ]]; then
 else
     repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
     art_id="$(gh api "repos/${repo}/actions/runs/${run_id}/artifacts" \
-              --jq '.artifacts[] | select(.name == "mipos-iso" and (.expired | not)) | .id')"
-    [[ -n ${art_id} ]] || die "Build ${run_id} has no mipos-iso download (expired after 14 days?)."
+              --jq '.artifacts[] | select(.name == "monarch-iso" and (.expired | not)) | .id')"
+    [[ -n ${art_id} ]] || die "Build ${run_id} has no monarch-iso download (expired after 14 days?)."
     # GitHub answers with a temporary direct link to the file.
     # (Ask with curl, not "gh api": gh would follow the link and download it all.)
     url="$(curl -fsS -o /dev/null -D - -H "Authorization: Bearer $(gh auth token)" \
@@ -37,7 +37,7 @@ else
 
     rm -rf "${dest}"
     mkdir -p "${dest}"
-    zip="${dest}/mipos-iso.zip"
+    zip="${dest}/monarch-iso.zip"
     if [[ ${size} =~ ^[0-9]+$ ]] && (( size > 0 )); then
         say "Downloading build ${run_id} ($(( size / 1048576 )) MiB, ${PARTS} pieces at once)"
         chunk=$(( (size + PARTS - 1) / PARTS ))

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =====================================================================
-#  mipos-install: the mipOS text installer (runs on the live ISO)
+#  monarch-install: the monarch text installer (runs on the live ISO)
 #
 #  Usage:
-#    mipos-install                      ask everything with menus
-#    mipos-install --config FILE        unattended: answers from FILE
-#                                       (example: /usr/share/mipos/answers.example)
-#    mipos-install --dry-run            ask everything, show the summary,
+#    monarch-install                      ask everything with menus
+#    monarch-install --config FILE        unattended: answers from FILE
+#                                       (example: /usr/share/monarch/answers.example)
+#    monarch-install --dry-run            ask everything, show the summary,
 #                                       change nothing
 #
 #  Screens are drawn with plain bash and terminal colors (nothing extra to install).
@@ -21,12 +21,12 @@
 # =====================================================================
 set -Eeuo pipefail
 
-CONF=${MIPOS_CONF:-/usr/share/mipos/mipos.conf}
+CONF=${MONARCH_CONF:-/usr/share/monarch/monarch.conf}
 # shellcheck source=/dev/null
 source "${CONF}"
 
-LOG=/var/log/mipos-install.log
-TARGET=/mnt/mipos                 # where the new system is mounted
+LOG=/var/log/monarch-install.log
+TARGET=/mnt/monarch                 # where the new system is mounted
 LIVE_ROOT=/run/archiso/airootfs   # the untouched live system image
 CRYPT_NAME=cryptroot
 MIN_ROOT_GB=12                    # space for the system itself (besides swap)
@@ -369,7 +369,7 @@ on_error() {   # on_error CODE LINE COMMAND
         log "Failed (code $1) at line $2: $3"
         return 0
     fi
-    die "Unexpected error (code $1) at line $2 of mipos-install, while running: $3"
+    die "Unexpected error (code $1) at line $2 of monarch-install, while running: $3"
 }
 
 ERR_TRAP='on_error $? ${LINENO} "${BASH_COMMAND}"'
@@ -445,7 +445,7 @@ load_answers() {
 # Checks before starting
 # ---------------------------------------------------------------------
 preflight() {
-    [[ ${EUID} -eq 0 ]] || { echo "Run as root: mipos-install"; exit 1; }
+    [[ ${EUID} -eq 0 ]] || { echo "Run as root: monarch-install"; exit 1; }
     [[ -d /sys/firmware/efi ]] || { echo "This PC started in old BIOS mode. ${DISTRO_NAME} needs UEFI."; exit 1; }
     [[ -d ${LIVE_ROOT}/usr ]] || { echo "Can't find the live system at ${LIVE_ROOT}. Run this from the ${DISTRO_NAME} ISO."; exit 1; }
     local c
@@ -817,7 +817,7 @@ step_desktop() {
                 "(Ctrl+Space) and the foot terminal, in a black-and-white look." \
                 "The desktop is downloaded now: the install takes a few minutes longer" \
                 "and uses roughly 650 MB of disk space. You can also add it later with:" \
-                "    sudo mipos-add-desktop"
+                "    sudo monarch-add-desktop"
             blank
             ANS[DESKTOP]="$(choose "How should ${DISTRO_NAME} be installed?" \
                 no  "Without desktop: text only (smallest, default)" \
@@ -825,7 +825,7 @@ step_desktop() {
         else
             say "The desktop (MangoWM) is downloaded from the internet, and you're not" \
                 "connected, so it can't be included now. After the restart, connect and run:" \
-                "    sudo mipos-add-desktop"
+                "    sudo monarch-add-desktop"
             ANS[DESKTOP]=no
             pause
         fi
@@ -953,7 +953,7 @@ do_format() {
         dev=/dev/mapper/${CRYPT_NAME}
     fi
     save ROOT_DEV "${dev}"
-    mkfs.fat -F 32 -n MIPOS_EFI "${ESP_PART}"
+    mkfs.fat -F 32 -n MONARCH_EFI "${ESP_PART}"
     mkfs.btrfs -f -L "${DISTRO_ID}" "${dev}"
 }
 
@@ -1011,10 +1011,10 @@ do_cleanup_live() {
            "${t}/etc/systemd/system/pacman-init.service" \
            "${t}/etc/systemd/system/etc-pacman.d-gnupg.mount" \
            "${t}/etc/systemd/system/multi-user.target.wants/pacman-init.service" \
-           "${t}/usr/local/bin/mipos-install" \
+           "${t}/usr/local/bin/monarch-install" \
            "${t}/etc/machine-id"
     rmdir "${t}/etc/systemd/system/getty@tty1.service.d" 2>/dev/null || true
-    printf '\n  %s %s (built for ThinkPad L14 Gen 5)\n  Other hardware not working? Read: less /usr/share/mipos/HARDWARE.md\n\n' \
+    printf '\n  %s %s (built for ThinkPad L14 Gen 5)\n  Other hardware not working? Read: less /usr/share/monarch/HARDWARE.md\n\n' \
         "${DISTRO_NAME}" "${DISTRO_VERSION}" >"${t}/etc/motd"
     arch-chroot "${t}" pacman -R --noconfirm mkinitcpio-archiso
 }
@@ -1040,15 +1040,15 @@ do_settings() {
     # pacman: keyring, and the size-trimming rules (NoExtract) for future installs
     arch-chroot "${t}" pacman-key --init
     arch-chroot "${t}" pacman-key --populate archlinux
-    if ! grep -q 'mipOS size trimming' "${t}/etc/pacman.conf"; then
-        awk -v rules="$(printf '# mipOS size trimming (from /etc/pacman.d/mipos-noextract.conf)\n'; grep '^NoExtract' "${t}/etc/pacman.d/mipos-noextract.conf")" \
+    if ! grep -q 'monarch size trimming' "${t}/etc/pacman.conf"; then
+        awk -v rules="$(printf '# monarch size trimming (from /etc/pacman.d/monarch-noextract.conf)\n'; grep '^NoExtract' "${t}/etc/pacman.d/monarch-noextract.conf")" \
             '{print} /^\[options\]/ && !done {print rules; done=1}' \
             "${t}/etc/pacman.conf" >"${t}/etc/pacman.conf.new"
         mv "${t}/etc/pacman.conf.new" "${t}/etc/pacman.conf"
     fi
     # Services: network, Wi-Fi, time sync, power saving, SSD trim
     arch-chroot "${t}" systemctl enable systemd-networkd systemd-resolved iwd \
-        systemd-timesyncd power-profiles-daemon mipos-power-source thermald bluetooth fstrim.timer
+        systemd-timesyncd power-profiles-daemon monarch-power-source thermald bluetooth fstrim.timer
 }
 
 do_users() {
@@ -1068,7 +1068,7 @@ do_fstab() {
     uuid="$(blkid -s UUID -o value "${ROOT_DEV}")"
     esp="$(blkid -s UUID -o value "${ESP_PART}")"
     cat >"${t}/etc/fstab" <<EOF
-# /etc/fstab: file systems mounted at start (written by mipos-install)
+# /etc/fstab: file systems mounted at start (written by monarch-install)
 # <device>      <where>     <type>  <options>                              <dump> <check>
 UUID=${uuid}  /           btrfs   ${opts},subvol=@          0 0
 UUID=${uuid}  /home       btrfs   ${opts},subvol=@home      0 0
@@ -1100,13 +1100,13 @@ do_update() {
 
 do_desktop() {
     # Needs internet. A failed download is not fatal: the text system works.
-    local cmd="arch-chroot ${TARGET} /usr/local/sbin/mipos-add-desktop ${ANS[USERNAME]}"
+    local cmd="arch-chroot ${TARGET} /usr/local/sbin/monarch-add-desktop ${ANS[USERNAME]}"
     if interactive; then
         script -qefc "${cmd}" -a "${LOG}" \
-            || bad "Desktop install failed; after the restart run: sudo mipos-add-desktop"
+            || bad "Desktop install failed; after the restart run: sudo monarch-add-desktop"
     else
         ${cmd} >>"${LOG}" 2>&1 \
-            || echo "WARNING: desktop install failed; run 'sudo mipos-add-desktop' after the restart."
+            || echo "WARNING: desktop install failed; run 'sudo monarch-add-desktop' after the restart."
     fi
 }
 
@@ -1118,10 +1118,10 @@ do_initramfs() {
         [[ -f ${t}/usr/lib/initcpio/install/${h} ]] && hooks+=("${h}")
     done
     mkdir -p "${t}/etc/mkinitcpio.conf.d" "${t}/etc/mkinitcpio.d"
-    printf '# Written by mipos-install\nHOOKS=(%s)\nCOMPRESSION="zstd"\n' "${hooks[*]}" \
-        >"${t}/etc/mkinitcpio.conf.d/mipos.conf"
+    printf '# Written by monarch-install\nHOOKS=(%s)\nCOMPRESSION="zstd"\n' "${hooks[*]}" \
+        >"${t}/etc/mkinitcpio.conf.d/monarch.conf"
     cat >"${t}/etc/mkinitcpio.d/${KERNEL}.preset" <<EOF
-# mkinitcpio preset for ${KERNEL} (written by mipos-install): one image, no fallback
+# mkinitcpio preset for ${KERNEL} (written by monarch-install): one image, no fallback
 ALL_kver="/boot/vmlinuz-${KERNEL}"
 PRESETS=('default')
 default_image="/boot/initramfs-${KERNEL}.img"
@@ -1171,9 +1171,9 @@ finish_report() {
         echo "System without swap file: $(( used - $(ram_mib) )) MiB"
         echo "Boot partition used: $(df -m --output=used "${TARGET}/boot" | tail -n1 | xargs) MiB"
         echo "Packages: $(arch-chroot "${TARGET}" pacman -Qq | wc -l)"
-    } | tee "${TARGET}/var/log/mipos-install-size.txt" /tmp/mipos-install-size.txt >>"${LOG}"
-    cp "${LOG}" "${TARGET}/var/log/mipos-install.log"
-    chmod 600 "${TARGET}/var/log/mipos-install.log"
+    } | tee "${TARGET}/var/log/monarch-install-size.txt" /tmp/monarch-install-size.txt >>"${LOG}"
+    cp "${LOG}" "${TARGET}/var/log/monarch-install.log"
+    chmod 600 "${TARGET}/var/log/monarch-install.log"
 }
 
 cleanup() {   # unmount everything; each part may already be undone, that's fine
@@ -1243,7 +1243,7 @@ main() {
                        UNATTENDED=yes; CONFIG_FILE=$2; shift ;;
             --dry-run) DRY_RUN=yes ;;
             -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
-            *) echo "Unknown option: $1 (see mipos-install --help)"; exit 1 ;;
+            *) echo "Unknown option: $1 (see monarch-install --help)"; exit 1 ;;
         esac
         shift
     done
@@ -1284,7 +1284,7 @@ main() {
     install_system
 
     if [[ ${UNATTENDED} == yes ]]; then
-        cat /tmp/mipos-install-size.txt
+        cat /tmp/monarch-install-size.txt
         echo "Installation finished."
         [[ ${ANS[REBOOT]:-no} == yes ]] && systemctl reboot
         exit 0
@@ -1292,8 +1292,8 @@ main() {
     blank
     box "${OK}" "${DISTRO_NAME} is installed."
     blank
-    mapfile -t lines </tmp/mipos-install-size.txt
-    dim "${lines[@]}" "(Saved in /var/log/mipos-install-size.txt)"
+    mapfile -t lines </tmp/monarch-install-size.txt
+    dim "${lines[@]}" "(Saved in /var/log/monarch-install-size.txt)"
     blank
     say "Remove the USB stick, then restart. Log in as ${ANS[USERNAME]}." "Useful first commands:"
     tty_out "    sudo pacman -Syu      update"$'\n'"    iwctl                 Wi-Fi"$'\n'

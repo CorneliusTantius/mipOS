@@ -1,6 +1,6 @@
-# Hardware: what mipOS supports, and adding more
+# Hardware: what monarch supports, and adding more
 
-mipOS is built for **one laptop: Lenovo ThinkPad L14 Gen 5 (21L2) with an
+monarch is built for **one laptop: Lenovo ThinkPad L14 Gen 5 (21L2) with an
 Intel Core Ultra 5 135U** (Meteor Lake). To stay small it keeps only the
 drivers and firmware this laptop uses. Anything else can be added back with
 pacman (needs internet). This page shows how.
@@ -37,13 +37,13 @@ chips...) is removed.
 
 Two lists decide what stays:
 
-- `/etc/mipos/keep-modules`: driver names, one per line. Drivers they need
+- `/etc/monarch/keep-modules`: driver names, one per line. Drivers they need
   are kept automatically.
-- `/etc/mipos/keep-firmware`: firmware file patterns (inside
+- `/etc/monarch/keep-firmware`: firmware file patterns (inside
   `/usr/lib/firmware`).
 
 After every install or update of the kernel or a firmware package, a pacman
-hook runs `/usr/local/sbin/mipos-trim-hardware`, which deletes every driver and
+hook runs `/usr/local/sbin/monarch-trim-hardware`, which deletes every driver and
 firmware file not on the lists. So **to add something: put it on the list, then
 reinstall the package**, and the trimming keeps it from then on. Future updates
 keep your change.
@@ -62,7 +62,7 @@ To find a driver's name for a USB device, search the web for its ID from
 ## 2. Add a driver
 
 ```bash
-sudo nano /etc/mipos/keep-modules
+sudo nano /etc/monarch/keep-modules
 ```
 
 Add the driver's name on a new line (e.g. `rtw89_8852be`), save (Ctrl+O,
@@ -96,7 +96,7 @@ Then put the firmware files on the keep list. The missing-file message from
 step 1 shows the name; a pattern with `*` covers a whole folder:
 
 ```bash
-sudo nano /etc/mipos/keep-firmware
+sudo nano /etc/monarch/keep-firmware
 ```
 
 For example add `rtw89/*` (all Realtek rtw89 Wi-Fi firmware), save, close, and
@@ -114,7 +114,7 @@ For a laptop that isn't the ThinkPad L14 Gen 5, or while finding out what a
 device needs: keep **everything** by putting a line with only `*` in both lists.
 
 ```bash
-echo '*' | sudo tee -a /etc/mipos/keep-modules /etc/mipos/keep-firmware
+echo '*' | sudo tee -a /etc/monarch/keep-modules /etc/monarch/keep-firmware
 ```
 
 ```bash
@@ -124,11 +124,11 @@ sudo pacman -S linux linux-firmware-intel sof-firmware intel-ucode
 Install other brands' firmware packages (step 3) as needed, then
 `sudo reboot`. Undo: delete the `*` lines and run the `pacman -S` command again.
 
-## 5. Other things mipOS leaves out
+## 5. Other things monarch leaves out
 
 Documentation, man pages, translations, C headers and static libraries (only
 needed to compile programs), and most terminal descriptions are left out by the
-rules in `/etc/pacman.conf` (block `# mipOS size trimming`). To get one back,
+rules in `/etc/pacman.conf` (block `# monarch size trimming`). To get one back,
 put `#` in front of its `NoExtract` line, then reinstall the packages it belongs
 to. For example, to compile programs (gcc, make, npm native modules):
 

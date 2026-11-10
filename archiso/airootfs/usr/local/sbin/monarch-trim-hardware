@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# mipos-trim-hardware: delete kernel drivers and firmware this laptop doesn't use.
+# monarch-trim-hardware: delete kernel drivers and firmware this laptop doesn't use.
 #
 # Keeps:
-#   drivers   named in /etc/mipos/keep-modules (names, or folder patterns with a
+#   drivers   named in /etc/monarch/keep-modules (names, or folder patterns with a
 #             "/" like crypto/* , relative to the kernel's driver folder),
 #             plus every driver they need
-#   firmware  matching /etc/mipos/keep-firmware; for Intel Wi-Fi only the two
+#   firmware  matching /etc/monarch/keep-firmware; for Intel Wi-Fi only the two
 #             newest versions the kernel can load
 # Runs automatically after kernel and firmware installs/updates (pacman hook
-# 70-mipos-trim-hardware.hook), and is safe to run by hand any time.
+# 70-monarch-trim-hardware.hook), and is safe to run by hand any time.
 # A line with only "*" in a keep file switches that part off (keep all).
-# MIPOS_ROOT=/some/folder works on another system folder (for tests).
+# MONARCH_ROOT=/some/folder works on another system folder (for tests).
 set -euo pipefail
 
-root=${MIPOS_ROOT:-}
-conf="${root}/etc/mipos"
+root=${MONARCH_ROOT:-}
+conf="${root}/etc/monarch"
 fw="${root}/usr/lib/firmware"
 
 read_list() { [[ -f $1 ]] && sed -e 's/#.*//' -e 's/[[:space:]]//g' -e '/^$/d' "$1" || true; }
