@@ -44,11 +44,14 @@
     "tooltip": false
   },
 
+  // Clicks open small terminal apps in a floating window (q or Esc closes them):
+  //   Bluetooth: bluetui   Wi-Fi: impala   Volume: wiremix (right-click = mute)
   "bluetooth": {
     "format": "BT",
     "format-connected": "BT {num_connections}",
-    "format-off": "",
+    "format-off": "BT OFF",
     "format-disabled": "",
+    "on-click": "foot --app-id=monarch-popup -e bluetui",
     "tooltip": false
   },
 
@@ -56,13 +59,16 @@
     "format-wifi": "{essid}",
     "format-ethernet": "WIRED",
     "format-disconnected": "OFFLINE",
+    "on-click": "foot --app-id=monarch-popup -e impala",
     "tooltip": false
   },
 
   "wireplumber": {
     "format": "VOL {volume}",
     "format-muted": "MUTE",
-    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "scroll-step": 2,
+    "on-click": "foot --app-id=monarch-popup -e wiremix",
+    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
     "tooltip": false
   },
 

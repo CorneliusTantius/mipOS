@@ -262,9 +262,13 @@ out/                   Everything the build makes (not stored in git)
 | **Super+R** | Reload the settings |
 | **Super+M** | Quit the desktop (back to the text shell) |
 | Fn keys | Brightness, volume, mute, microphone mute |
+| Click **VOL** on the bar | Volume mixer (wiremix); right-click mutes, scroll changes the volume |
+| Click the Wi-Fi name | Wi-Fi manager (impala): pick a network, Enter, type the password |
+| Click **BT** | Bluetooth manager (bluetui): scan, pair, connect |
 | **Print** / **Shift+Print** | Screenshot of an area: to the clipboard / to `~/screenshot-DATE.png` |
 
-Also installed with the desktop: PipeWire (sound), notifications (mako),
+Also installed with the desktop: PipeWire (sound) with the small terminal
+managers wiremix, impala (Wi-Fi) and bluetui that the bar buttons open, notifications (mako),
 screenshots (grim, slurp, wl-clipboard), brightness keys (brightnessctl) and
 udiskie (USB sticks mount by themselves under `/run/media/YOURNAME/`, with a
 notification; `udiskie-umount -a` unmounts them before you pull them out).
