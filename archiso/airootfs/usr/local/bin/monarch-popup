@@ -1,0 +1,8 @@
+#!/bin/sh
+# monarch-popup PROGRAM [ARGS]: run a terminal program in a small floating window
+# (the bar's volume, Wi-Fi and Bluetooth buttons use it). If the program stops
+# with an error, the window stays open until Enter so the message can be read.
+[ $# -gt 0 ] || { echo "Usage: monarch-popup PROGRAM [ARGS]"; exit 1; }
+exec foot --app-id=monarch-popup -e sh -c '
+    "$@" || { echo; echo "\"$1\" stopped with an error (message above). Press Enter to close."; read -r _; }
+' sh "$@"

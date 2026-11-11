@@ -20,6 +20,7 @@ file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/root"]="0:0:750"
   ["/usr/local/bin/monarch-install"]="0:0:755"
+  ["/usr/local/bin/monarch-popup"]="0:0:755"
   ["/usr/local/sbin/monarch-trim-hardware"]="0:0:755"
   ["/usr/local/sbin/monarch-power-source"]="0:0:755"
   ["/usr/local/sbin/monarch-add-desktop"]="0:0:755"

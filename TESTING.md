@@ -114,8 +114,8 @@ Needs internet in the VM. Best on top of A3a (or run step 5.2 on an already inst
 | 5.5c | Open two terminals (Alt+Enter twice), then **Alt+Left/Right** | Windows sit side by side in a strip and scroll when focus moves (scroller layout) |
 | 5.5d | In a foot terminal: `wpctl status`, then `notify-send hello` | `wpctl status` lists PipeWire and the sound card; a black notification with a thin outline appears at the top right |
 | 5.5e | Press **Print**, drag over an area, then `wl-paste > /tmp/a.png && file /tmp/a.png` | `PNG image data` (the screenshot reached the clipboard) |
-| 5.5f | Click **VOL** on the bar; in the window use arrows, **m** to mute, **q** to close. Then right-click VOL | A small floating terminal with a mixer opens; the right click toggles `MUTE` on the bar |
-| 5.5g | Click the Wi-Fi name (or `OFFLINE`), then the **BT** button | Floating `impala` (Wi-Fi) and `bluetui` windows open; **q** closes them. In the VM there is no Wi-Fi or Bluetooth card, so they only show an empty list or a message |
+| 5.5f | Click **VOL** on the bar; in the window use arrows, **m** to mute, **q** to close. Then right-click VOL | A small floating mixer opens on the Output devices tab (Tab key moves between tabs); the right click toggles `MUTE` on the bar |
+| 5.5g | Click the Wi-Fi name (or `OFFLINE`), then the **BT** button | Floating `impala` (Wi-Fi) and `bluetui` windows open; **q** closes them. In the VM there is no Wi-Fi or Bluetooth card, so each shows a message and waits for Enter instead of closing at once |
 | 5.5h | `Ctrl+Space`, type `foot` | Only one entry **Foot**: no "Foot Client" or "Foot Server" |
 | 5.6 | Quit MangoWM (default: **Super+M** (the Windows key); see `~/.config/mango/config.conf`) | Back at the text shell, no error |
 | 5.6b | In `~/.config/mango/config.conf` look for `exec_once=waybar` at the end | Present once |

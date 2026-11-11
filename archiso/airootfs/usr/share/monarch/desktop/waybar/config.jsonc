@@ -51,7 +51,7 @@
     "format-connected": "BT {num_connections}",
     "format-off": "BT OFF",
     "format-disabled": "",
-    "on-click": "foot --app-id=monarch-popup -e bluetui",
+    "on-click": "monarch-popup bluetui",
     "tooltip": false
   },
 
@@ -59,7 +59,7 @@
     "format-wifi": "{essid}",
     "format-ethernet": "WIRED",
     "format-disconnected": "OFFLINE",
-    "on-click": "foot --app-id=monarch-popup -e impala",
+    "on-click": "monarch-popup impala",
     "tooltip": false
   },
 
@@ -67,7 +67,7 @@
     "format": "VOL {volume}",
     "format-muted": "MUTE",
     "scroll-step": 2,
-    "on-click": "foot --app-id=monarch-popup -e wiremix",
+    "on-click": "monarch-popup wiremix --tab output --mouse",
     "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
     "tooltip": false
   },

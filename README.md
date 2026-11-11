@@ -262,7 +262,7 @@ out/                   Everything the build makes (not stored in git)
 | **Super+R** | Reload the settings |
 | **Super+M** | Quit the desktop (back to the text shell) |
 | Fn keys | Brightness, volume, mute, microphone mute |
-| Click **VOL** on the bar | Volume mixer (wiremix); right-click mutes, scroll changes the volume |
+| Click **VOL** on the bar | Volume mixer (wiremix, Output devices tab); right-click mutes, scroll changes the volume |
 | Click the Wi-Fi name | Wi-Fi manager (impala): pick a network, Enter, type the password |
 | Click **BT** | Bluetooth manager (bluetui): scan, pair, connect |
 | **Print** / **Shift+Print** | Screenshot of an area: to the clipboard / to `~/screenshot-DATE.png` |
