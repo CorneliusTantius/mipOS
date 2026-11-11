@@ -104,6 +104,7 @@ Needs internet in the VM. Best on top of A3a (or run step 5.2 on an already inst
 | # | Do this | Expected |
 |---|---|---|
 | 5.1 | Install as in 3.3, but on step 8 "Desktop" pick **With desktop** (on a fresh install; `scripts/make-test-disk.sh empty` first) | Extra step "Installing the desktop" with pacman downloading `mangowm`, `waybar`, `foot`, `ttf-dejavu` and their dependencies; the summary shows `Desktop: MangoWM` |
+| 5.1a | In step 1 of the installer choose **Skip: install without internet**, then pick **With desktop** | The desktop still installs, from the USB stick (the log shows "Installing from the copy on the USB stick", no downloading) |
 | 5.2 | On an already installed system instead: `sudo monarch-add-desktop` | Same packages install; "Done." |
 | 5.3 | `cat ~/.bash_profile` | Ends with the `# monarch desktop` block (tty1 only) |
 | 5.4 | Log in on tty1 (or type `mango`) | The desktop starts: mouse pointer and a Waybar bar on the screen edge |

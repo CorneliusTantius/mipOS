@@ -13,11 +13,11 @@ same.
 |---|---|
 | **Made for** | ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U. Other hardware can be added: [docs/HARDWARE.md](docs/HARDWARE.md) |
 | **Base** | Arch Linux (official packages, updated with `pacman`), x86_64, UEFI only |
-| **Interface** | Text only, or with the MangoWM desktop (Waybar bar, Ctrl+Space launcher, foot terminal, black-and-white look): chosen in the installer or added later with `sudo monarch-add-desktop` (needs internet) |
+| **Interface** | Text only, or with the MangoWM desktop (Waybar bar, Ctrl+Space launcher, foot terminal, black-and-white look): chosen in the installer (the packages are on the USB stick, no internet needed) or added later with `sudo monarch-add-desktop` (needs internet) |
 | **Network** | Wi-Fi with `iwctl`, cable automatic, phone USB tethering; Bluetooth with `bluetoothctl` |
 | **Install** | Erase the disk, or use free space next to Windows; optional disk encryption; hibernation |
 | **Battery** | power-saver on battery, device power saving, zram, thermald |
-| **Size** | ISO about 240 MB; installed system about 430 MB plus a swap file the size of RAM (each build's size report shows the exact numbers) |
+| **Size** | ISO about 240 MB for the system, plus roughly 190 MB of desktop packages (an estimate; each build's size report shows the exact numbers); installed system about 430 MB plus a swap file the size of RAM (each build's size report shows the exact numbers) |
 
 Earlier versions (Ubuntu-based, then Linux From Scratch) are in the git history.
 

@@ -4,7 +4,8 @@
 #
 #  Usage (as root):   monarch-add-desktop [USERNAME]
 #
-#  It installs the packages in DESKTOP_PACKAGES (monarch.conf), gives the user
+#  It installs the packages in DESKTOP_PACKAGES (monarch.conf; from the copy on
+#  the ISO if there is one, else downloaded), gives the user
 #  the monarch settings for MangoWM, Waybar, the Ctrl+Space launcher (fuzzel)
 #  and the foot terminal (~/.config/..., only files the user doesn't have
 #  yet), and starts the desktop when that user logs in on tty1. tty2 to tty6 stay plain text. Quitting MangoWM returns to the
@@ -28,9 +29,38 @@ id "${user}" >/dev/null 2>&1 || { echo "No such user: ${user}"; exit 1; }
 home="$(getent passwd "${user}" | cut -d: -f6)"
 group="$(id -gn "${user}")"
 
-echo "== Installing: ${DESKTOP_PACKAGES}"
-# shellcheck disable=SC2086   # the list is meant to split into words
-pacman -S --needed --noconfirm ${DESKTOP_PACKAGES}
+# The ISO carries the desktop's packages (an offline repository); the installer
+# makes it available as MONARCH_REPO. On an installed system there is none,
+# and the packages are downloaded instead.
+repo=${MONARCH_REPO:-/usr/share/${DISTRO_ID}/repo}
+installed=no
+if [[ -f ${repo}/${DISTRO_ID}-local.db ]]; then
+    conf="$(mktemp)"
+    {
+        echo '[options]'
+        echo 'Architecture = x86_64'
+        echo 'SigLevel = Required DatabaseOptional'
+        grep '^NoExtract' /etc/pacman.conf || true   # keep the size trimming rules
+        echo "[${DISTRO_ID}-local]"
+        echo "Server = file://${repo}"
+    } >"${conf}"
+    echo "== Installing from the copy on the USB stick: ${DESKTOP_PACKAGES}"
+    # shellcheck disable=SC2086   # the list is meant to split into words
+    if pacman --config "${conf}" -Sy --noconfirm >/dev/null \
+        && pacman --config "${conf}" -S --needed --noconfirm ${DESKTOP_PACKAGES}; then
+        installed=yes
+    else
+        echo "The copy on the USB stick didn't work; downloading instead."
+    fi
+    rm -f "${conf}" "/var/lib/pacman/sync/${DISTRO_ID}-local.db"*
+fi
+if [[ ${installed} != yes ]]; then
+    echo "== Downloading and installing: ${DESKTOP_PACKAGES}"
+    # -Syu: upgrade everything in the same step (installing new packages next to
+    # an outdated system can break programs).
+    # shellcheck disable=SC2086
+    pacman -Syu --needed --noconfirm ${DESKTOP_PACKAGES}
+fi
 
 echo "== Brightness keys need the video group"
 usermod -aG video "${user}"

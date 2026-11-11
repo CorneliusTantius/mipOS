@@ -806,18 +806,27 @@ step_encrypt() {
 # ---------------------------------------------------------------------
 # 8. Desktop (optional)
 # ---------------------------------------------------------------------
+desktop_repo_ok() { [[ -f "/usr/share/${DISTRO_ID}/repo/${DISTRO_ID}-local.db" ]]; }   # desktop packages on the stick
+
 step_desktop() {
+    local have_repo=no
+    if desktop_repo_ok; then have_repo=yes; fi
     if [[ ${UNATTENDED} == yes ]]; then
         ANS[DESKTOP]=${ANS[DESKTOP]:-no}
     elif [[ -z ${ANS[DESKTOP]:-} ]]; then
         header 8 "Desktop"
-        if [[ ${NET_OK} == yes ]]; then
+        if [[ ${have_repo} == yes || ${NET_OK} == yes ]]; then
             say "${DISTRO_NAME} can be text only, or come with a desktop: MangoWM (a small" \
                 "window manager with scrolling windows), a status bar (Waybar), a launcher" \
-                "(Ctrl+Space) and the foot terminal, in a black-and-white look." \
-                "The desktop is downloaded now: the install takes a few minutes longer" \
-                "and uses roughly 650 MB of disk space. You can also add it later with:" \
-                "    sudo monarch-add-desktop"
+                "(Ctrl+Space) and the foot terminal, in a black-and-white look."
+            if [[ ${have_repo} == yes ]]; then
+                say "The desktop is on this USB stick: no download needed (it updates later" \
+                    "with the rest if you're online). It uses roughly 650 MB of disk space."
+            else
+                say "The desktop is downloaded now: the install takes a few minutes longer" \
+                    "and uses roughly 650 MB of disk space."
+            fi
+            say "You can also add it later with:  sudo ${DISTRO_ID}-add-desktop"
             blank
             ANS[DESKTOP]="$(choose "How should ${DISTRO_NAME} be installed?" \
                 no  "Without desktop: text only (smallest, default)" \
@@ -825,13 +834,14 @@ step_desktop() {
         else
             say "The desktop (MangoWM) is downloaded from the internet, and you're not" \
                 "connected, so it can't be included now. After the restart, connect and run:" \
-                "    sudo monarch-add-desktop"
+                "    sudo ${DISTRO_ID}-add-desktop"
             ANS[DESKTOP]=no
             pause
         fi
     fi
     case "${ANS[DESKTOP]}" in
-        yes) [[ ${NET_OK} == yes ]] || die "DESKTOP=yes needs internet (NETWORK=auto with a cable or Wi-Fi)." ;;
+        yes) [[ ${have_repo} == yes || ${NET_OK} == yes ]] \
+                 || die "DESKTOP=yes needs internet (NETWORK=auto with a cable or Wi-Fi)." ;;
         no)  ;;
         *)   die "DESKTOP must be yes or no." ;;
     esac
@@ -983,17 +993,18 @@ do_mount() {
 do_copy() {
     # Copy the live system image; the -x keeps rsync on this one file system.
     # /boot is skipped: it's the FAT EFI partition (no Linux permissions), and
-    # the live image's /boot is empty anyway.
+    # the live image's /boot is empty anyway. The offline desktop repository
+    # stays on the stick (the desktop step uses it, the installed disk needn't keep it).
     local kver
     if interactive; then
         # Progress bar: rsync reports a percentage, awk draws [#####.....] 45%.
-        rsync -aAXHx --exclude=/boot --info=progress2 --no-inc-recursive "${LIVE_ROOT}/" "${TARGET}/" \
+        rsync -aAXHx --exclude=/boot --exclude="/usr/share/${DISTRO_ID}/repo" --info=progress2 --no-inc-recursive "${LIVE_ROOT}/" "${TARGET}/" \
             | stdbuf -oL tr '\r' '\n' \
             | awk -v title="${COPY_TITLE}" '{for (i = 1; i <= NF; i++) if ($i ~ /^[0-9]+%$/) {
                   p = $i + 0; bar = ""; for (j = 0; j < 30; j++) bar = bar (j < p * 30 / 100 ? "#" : ".")
                   printf "\r  %s [%s] %3d%%", title, bar, p; fflush() }} END {print ""}' >/dev/tty
     else
-        rsync -aAXHx --exclude=/boot "${LIVE_ROOT}/" "${TARGET}/"
+        rsync -aAXHx --exclude=/boot --exclude="/usr/share/${DISTRO_ID}/repo" "${LIVE_ROOT}/" "${TARGET}/"
     fi
     # The kernel file goes to /boot (the live image keeps it in /usr/lib/modules).
     kver="$(ls "${TARGET}/usr/lib/modules" | head -n1)"
@@ -1104,15 +1115,26 @@ do_update() {
 }
 
 do_desktop() {
-    # Needs internet. A failed download is not fatal: the text system works.
-    local cmd="arch-chroot ${TARGET} /usr/local/sbin/monarch-add-desktop ${ANS[USERNAME]}"
+    # With the desktop packages on the stick, the new system sees them through a
+    # read-only bind mount; otherwise they are downloaded (needs internet).
+    # A failed desktop install is not fatal: the text system works.
+    local cmd mnt="${TARGET}/mnt/${DISTRO_ID}-repo" use=""
+    if desktop_repo_ok; then
+        mkdir -p "${mnt}"
+        mount --bind "/usr/share/${DISTRO_ID}/repo" "${mnt}"
+        mount -o remount,bind,ro "${mnt}" || true
+        use="MONARCH_REPO=/mnt/${DISTRO_ID}-repo"
+    fi
+    cmd="arch-chroot ${TARGET} env ${use} /usr/local/sbin/${DISTRO_ID}-add-desktop ${ANS[USERNAME]}"
     if interactive; then
         script -qefc "${cmd}" -a "${LOG}" \
-            || bad "Desktop install failed; after the restart run: sudo monarch-add-desktop"
+            || bad "Desktop install failed; after the restart run: sudo ${DISTRO_ID}-add-desktop"
     else
         ${cmd} >>"${LOG}" 2>&1 \
-            || echo "WARNING: desktop install failed; run 'sudo monarch-add-desktop' after the restart."
+            || echo "WARNING: desktop install failed; run 'sudo ${DISTRO_ID}-add-desktop' after the restart."
     fi
+    umount "${mnt}" 2>/dev/null || true
+    rmdir "${mnt}" 2>/dev/null || true
 }
 
 do_initramfs() {
@@ -1214,6 +1236,15 @@ install_system() {
     step "Language, time, name, services" do_settings
     step "Creating your user" do_users
     step "Writing the list of file systems" do_fstab
+    # The desktop first (from the stick if possible, matching the system copied above);
+    # the update afterwards upgrades everything together.
+    if [[ ${ANS[DESKTOP]} == yes ]]; then
+        STEP_NO=$((STEP_NO + 1))
+        log "== Installing the desktop"
+        say "(${STEP_NO}/${STEPS}) Installing the desktop (shows pacman's progress):"
+        do_desktop
+        good "(${STEP_NO}/${STEPS}) Installing the desktop"
+    fi
     if [[ ${NET_OK} == yes && ${ANS[UPDATE]:-yes} == yes ]]; then
         # Not a spinner step: pacman shows its own download progress here.
         STEP_NO=$((STEP_NO + 1))
@@ -1221,13 +1252,6 @@ install_system() {
         say "(${STEP_NO}/${STEPS}) Updating packages (shows pacman's download progress):"
         do_update
         good "(${STEP_NO}/${STEPS}) Updating packages"
-    fi
-    if [[ ${ANS[DESKTOP]} == yes ]]; then
-        STEP_NO=$((STEP_NO + 1))
-        log "== Installing the desktop"
-        say "(${STEP_NO}/${STEPS}) Installing the desktop (shows pacman's download progress):"
-        do_desktop
-        good "(${STEP_NO}/${STEPS}) Installing the desktop"
     fi
     step "Building the start-up system (initramfs)" do_initramfs
     step "Installing the boot loader (GRUB)" do_bootloader
