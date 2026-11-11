@@ -4,8 +4,8 @@
 #   scripts/test-vm.sh [path/to/monarch.iso]   start the ISO (default: the one in out/download/)
 #   scripts/test-vm.sh --no-iso              start the installed system on the test disk
 # The VM always has the test disk out/vm/disk.qcow2 (empty the first time).
-# Screen size: VM_RESOLUTION in monarch.conf (default 1280x720); one-off:
-#   VM_RESOLUTION=1600x900 scripts/test-vm.sh
+# Screen size: VM_RESOLUTION in monarch.conf (default 1920x1080); one-off:
+#   VM_RESOLUTION=1280x720 scripts/test-vm.sh
 # New test disk: scripts/make-test-disk.sh empty|windows
 source "$(dirname "$0")/lib.sh"
 
@@ -23,7 +23,7 @@ else
     cdrom=(-drive file="${iso}",media=cdrom,readonly=on)
 fi
 command -v qemu-system-x86_64 >/dev/null || die "Install QEMU: sudo apt install qemu-system-x86 ovmf"
-[[ ${VM_RESOLUTION} =~ ^[0-9]+x[0-9]+$ ]] || die "VM_RESOLUTION must look like 1600x900 (is: ${VM_RESOLUTION})"
+[[ ${VM_RESOLUTION} =~ ^[0-9]+x[0-9]+$ ]] || die "VM_RESOLUTION must look like 1920x1080 (is: ${VM_RESOLUTION})"
 
 # UEFI firmware files have different names on different distributions.
 code=""; vars=""
