@@ -12,6 +12,7 @@ list="${PROFILE_DIR}/packages.${ARCH}"
 repo="${PROFILE_DIR}/airootfs/usr/share/${DISTRO_ID}/repo"
 cache=/var/cache/pacman/pkg
 tmp="$(mktemp -d)"
+chmod 755 "${tmp}"   # pacman downloads as an unprivileged user, which must be able to reach the folder
 trap 'rm -rf "${tmp}"' EXIT
 db="${tmp}/db"
 mkdir -p "${db}/local"
