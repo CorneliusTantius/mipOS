@@ -944,6 +944,11 @@ do_partition() {
 do_format() {
     local dev=${ROOT_PART}
     for _ in 1 2 3 4 5; do [[ -b ${ESP_PART} && -b ${ROOT_PART} ]] && break; sleep 1; done
+    # A reused disk can hold leftovers of an earlier install (e.g. an encryption header).
+    # Left in place, they make the new file system unreadable ("unknown filesystem
+    # type 'crypto_LUKS'"), so clear the start of both new partitions first.
+    wipefs -a "${ESP_PART}" "${ROOT_PART}"
+    dd if=/dev/zero of="${ROOT_PART}" bs=1M count=16 conv=fsync status=none
     if [[ ${ANS[ENCRYPT]} == yes ]]; then
         # LUKS2 with argon2id (the strong default). Key goes through stdin, never the log.
         printf '%s' "${ANS[LUKS_PASSWORD]}" | cryptsetup luksFormat --type luks2 --batch-mode \
