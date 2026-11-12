@@ -54,3 +54,7 @@ intel-ucode
 sudo
 nano
 less
+# Download and version-control tools (git needs perl, which adds about 100 MB;
+# curl comes with pacman anyway, listed so it stays)
+git
+curl
