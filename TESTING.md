@@ -108,15 +108,16 @@ Needs internet in the VM. Best on top of A3a (or run step 5.2 on an already inst
 | 5.2 | On an already installed system instead: `sudo monarch-add-desktop` | Same packages install; "Done." |
 | 5.3 | `cat ~/.bash_profile` | Ends with the `# monarch desktop` block (tty1 only) |
 | 5.4 | Log in on tty1 (or type `mango`) | The desktop starts: mouse pointer and a Waybar bar on the screen edge |
-| 5.5 | Press **Alt+Enter** | A foot terminal opens: black, white text, JetBrains Mono |
+| 5.5 | Press **Super+Enter** | A foot terminal opens: black, white text, JetBrains Mono |
 | 5.5a | Press **Ctrl+Space**, type `foot`, Enter (Esc closes it). Repeat with **Super+Space** and by clicking the red dot on the bar | A black launcher with a red `>` prompt opens; Enter starts foot |
 | 5.5b | Look at the screen | Black background, thin red border on the focused window, rounded corners, floating Waybar pills (dots for tags, layout, clock, status). Screenshot welcome |
-| 5.5c | Open two terminals (Alt+Enter twice), then **Alt+Left/Right** | Windows sit side by side in a strip and scroll when focus moves (scroller layout) |
+| 5.5c | Open two terminals (Super+Enter twice), then **Super+Left/Right** | Windows sit side by side in a strip and scroll when focus moves (scroller layout) |
 | 5.5d | In a foot terminal: `wpctl status`, then `notify-send hello` | `wpctl status` lists PipeWire and the sound card; a black notification with a thin outline appears at the top right |
 | 5.5e | Press **Print**, drag over an area, then `wl-paste > /tmp/a.png && file /tmp/a.png` | `PNG image data` (the screenshot reached the clipboard) |
 | 5.5f | Click **VOL** on the bar; in the window use arrows, **m** to mute, **q** to close. Then right-click VOL | A small floating mixer opens on the Output devices tab (Tab key moves between tabs); the right click toggles `MUTE` on the bar |
 | 5.5g | Click the Wi-Fi name (or `OFFLINE`), then the **BT** button | Floating `impala` (Wi-Fi) and `bluetui` windows open; **q** closes them. In the VM there is no Wi-Fi or Bluetooth card, so each shows a message and waits for Enter instead of closing at once |
 | 5.5h | `Ctrl+Space`, type `foot` | Only one entry **Foot**: no "Foot Client" or "Foot Server" |
+| 5.5i | Only with an external screen connected: look at the bar, click the **□** pill, pick a side (top/left/right/bottom) | The pill is hidden when no external screen is connected; picking a side places the screen there (`~/.config/mango/monitor.conf` is written). Not testable in the VM with one screen |
 | 5.6 | Quit MangoWM (default: **Super+M** (the Windows key); see `~/.config/mango/config.conf`) | Back at the text shell, no error |
 | 5.6b | In `~/.config/mango/config.conf` look for `exec_once=waybar` at the end | Present once |
 | 5.7 | Switch to tty2 (Ctrl+Alt+F2) and log in | Plain text shell, no desktop |

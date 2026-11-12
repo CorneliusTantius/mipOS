@@ -254,13 +254,16 @@ out/                   Everything the build makes (not stored in git)
 | Keys | Does |
 |---|---|
 | **Ctrl+Space** or **Super+Space** | Launcher (type, Enter); the red dot on the bar opens it too |
-| **Alt+Enter** | Terminal (foot) |
-| **Alt+Q** | Close the window |
-| **Alt+arrows** | Move focus between windows (they scroll sideways) |
-| **Super+arrows** / **Ctrl+1..9** | Switch tag (workspace); **Alt+1..9** moves the window there |
+| **Super+Enter** | Terminal (foot) |
+| **Super+Q** | Close the window |
+| **Super+arrows** or **Super+H/J/K/L** | Move focus between windows (they scroll sideways) |
+| **Super+Shift+arrows** or **Super+Shift+H/J/K/L** | Move the window |
+| **Super+Tab** | Focus the next window in the stack |
+| **Alt+Left/Right** or **Alt+H/L** | Switch tag (workspace); **Alt+Tab** goes to the next tag |
 | **Super+N** | Switch layout (starts as scroller) |
-| **Super+R** | Reload the settings |
+| **Super+R** | Reload the settings (MangoWM, mako, Waybar) |
 | **Super+M** | Quit the desktop (back to the text shell) |
+| Click the **□** on the bar | Only with an external screen: choose where it sits (top, left, right or bottom of the laptop screen) |
 | Fn keys | Brightness, volume, mute, microphone mute |
 | Click **VOL** on the bar | Volume mixer (wiremix, Output devices tab); right-click mutes, scroll changes the volume |
 | Click the Wi-Fi name | Wi-Fi manager (impala): pick a network, Enter, type the password |

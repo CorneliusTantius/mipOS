@@ -24,6 +24,7 @@ window#waybar {
 #network,
 #wireplumber,
 #backlight,
+#custom-external,
 #battery {
   background: #000000;
   color: #ffffff;

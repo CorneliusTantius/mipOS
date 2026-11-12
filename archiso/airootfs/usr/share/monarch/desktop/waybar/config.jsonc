@@ -12,7 +12,16 @@
 
   "modules-left": ["custom/launcher", "mango/workspaces", "mango/layout"],
   "modules-center": ["clock"],
-  "modules-right": ["bluetooth", "network", "wireplumber", "backlight", "battery"],
+  "modules-right": ["custom/external", "network", "bluetooth", "wireplumber", "backlight", "battery"],
+
+  // Pill shown only when an external display is connected
+  "custom/external": {
+    "exec": "sh ~/.config/waybar/external-monitor.sh",
+    "on-click": "sh ~/.config/mango/monitor-layout.sh",
+    "interval": 5,
+    "hide-empty-text": true,
+    "tooltip": false
+  },
 
   // The red dot: click to open the launcher (same as Ctrl+Space)
   "custom/launcher": {
@@ -73,13 +82,14 @@
   },
 
   "backlight": {
-    "format": "{percent}",
+    "format": "☼ {percent}",
     "tooltip": false
   },
 
   "battery": {
     "format": "{capacity}%",
     "format-charging": "+{capacity}%",
+    "format-plugged": "~{capacity}%",
     "format-full": "{capacity}%",
     "states": {
       "warning": 20,

@@ -69,7 +69,7 @@ echo "== monarch look and settings for ${user}"
 # Copies each program's settings (Nothing-style look) from /usr/share/monarch/desktop
 # to ~/.config, but never over a file you already have.
 share=/usr/share/monarch/desktop
-for f in mango/config.conf waybar/config.jsonc waybar/style.css fuzzel/fuzzel.ini foot/foot.ini mako/config; do
+for f in mango/config.conf mango/monitor-layout.sh waybar/config.jsonc waybar/style.css waybar/external-monitor.sh fuzzel/fuzzel.ini foot/foot.ini mako/config; do
     dest="${home}/.config/${f}"
     if [[ ! -e ${dest} ]]; then
         install -d -o "${user}" -g "${group}" -m 755 "${home}/.config" "$(dirname "${dest}")"
@@ -91,4 +91,4 @@ EOF
     chown "${user}:${group}" "${profile}"
 fi
 
-echo "Done. Log out and log in again on tty1 (or type: mango). Ctrl+Space opens the launcher, Alt+Enter a terminal."
+echo "Done. Log out and log in again on tty1 (or type: mango). Ctrl+Space opens the launcher, Super+Enter a terminal."

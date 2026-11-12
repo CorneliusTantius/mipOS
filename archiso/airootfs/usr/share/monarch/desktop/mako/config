@@ -12,8 +12,9 @@ margin=14
 width=340
 anchor=top-right
 layer=overlay
+icons=0
 default-timeout=5000
 
 [urgency=high]
 border-color=#d71921
-default-timeout=0
+default-timeout=15000
