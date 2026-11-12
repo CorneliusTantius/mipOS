@@ -17,7 +17,7 @@ same.
 | **Network** | Wi-Fi with `iwctl`, cable automatic, phone USB tethering; Bluetooth with `bluetoothctl` |
 | **Install** | Erase the disk, or use free space next to Windows; optional disk encryption; hibernation |
 | **Battery** | power-saver on battery, device power saving, zram, thermald |
-| **Size** | ISO about 240 MB for the system, plus roughly 190 MB of desktop packages (an estimate; each build's size report shows the exact numbers); installed system about 430 MB plus a swap file the size of RAM (each build's size report shows the exact numbers) |
+| **Size** | ISO about 240 MB for the system, plus roughly 420 MB of desktop packages, mostly the fonts for every language (an estimate; each build's size report shows the exact numbers); installed system about 430 MB plus a swap file the size of RAM (each build's size report shows the exact numbers) |
 
 Earlier versions (Ubuntu-based, then Linux From Scratch) are in the git history.
 
@@ -133,8 +133,9 @@ this once in Windows (admin):
    can't load). Same on the live ISO and the installed system.
 2. **No documentation or developer files.** The rules in
    `archiso/airootfs/etc/pacman.d/monarch-noextract.conf` make pacman skip
-   documentation, man pages, translations, C headers and static libraries, most
-   terminal descriptions and GRUB's old-BIOS parts.
+   documentation, man pages, C headers and static libraries, most terminal
+   descriptions and GRUB's old-BIOS parts. Translations are kept, so every
+   language works.
 3. **Light packages.** power-profiles-daemon instead of TLP (no perl), plain
    bash for the installer screens, no developer tools.
 
@@ -246,7 +247,7 @@ out/                   Everything the build makes (not stored in git)
   charger) + monarch rules (USB, PCI, SATA, sound power saving, PCIe ASPM),
   thermald, zram (zstd, 50% of RAM), journal max 50 MB, short stop timeout,
   unneeded timers off, kernel options `quiet loglevel=3 nowatchdog zswap.enabled=0`.
-- **Size:** no docs, man pages, translations, headers or static libraries; no
+- **Size:** no docs, man pages, headers or static libraries; no
   developer tools by default (see [docs/HARDWARE.md](docs/HARDWARE.md) to add them).
 
 ## Desktop keys (optional MangoWM desktop)

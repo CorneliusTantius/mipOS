@@ -577,8 +577,8 @@ step_locale() {
     else
         if [[ -z ${ANS[LOCALE]:-} ]]; then
             header 2 "Language"
-            dim "Sets how dates, numbers and sorting look. Programs show English text" \
-                "(translations are left out to save space)."
+            dim "Sets the language programs use for their text, and how dates," \
+                "numbers and sorting look."
             blank
             # One entry per language, en_US first.
             mapfile -t items < <({ echo en_US.UTF-8; awk '$2 == "UTF-8" {print $1}' /usr/share/i18n/SUPPORTED; } | awk '!seen[$0]++')

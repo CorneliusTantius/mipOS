@@ -126,7 +126,7 @@ Install other brands' firmware packages (step 3) as needed, then
 
 ## 5. Other things monarch leaves out
 
-Documentation, man pages, translations, C headers and static libraries (only
+Documentation, man pages, C headers and static libraries (only
 needed to compile programs), and most terminal descriptions are left out by the
 rules in `/etc/pacman.conf` (block `# monarch size trimming`). To get one back,
 put `#` in front of its `NoExtract` line, then reinstall the packages it belongs
