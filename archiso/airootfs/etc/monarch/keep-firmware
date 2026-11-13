@@ -15,13 +15,33 @@ i915/mtl_*
 intel/iwlwifi/iwlwifi-ma-b0-gf-a0*
 # Bluetooth: Intel AX211
 intel/ibt-0180-0041.*
-# NVIDIA driver (monarch-add-nvidia, only installed when chosen)
-nvidia/*
 # Sound: Sound Open Firmware for Meteor Lake, and its generic topology
 intel/sof-ipc4/mtl/*
 intel/sof-ipc4-lib/mtl/*
 intel/sof-ipc4-tplg/sof-hda-generic*
 # CPU fixes (microcode): family 6, model 0xAA, stepping 4
 intel-ucode/06-aa-04*
+
+# --- MSI Stealth 15M A11UEK: Intel Core i7-11375H (Tiger Lake-H) + Intel AX201 ---
+# Patterns collected from public sources (not yet confirmed on the laptop).
+# Graphics: Tiger Lake (i915): display (DMC), GuC, HuC
+i915/tgl_*
+# Wi-Fi: Intel AX201 (the trimming keeps the two newest versions of each family)
+intel/iwlwifi/iwlwifi-ty-a0-gf-a0*
+intel/iwlwifi/iwlwifi-QuZ-a0-hr-b0*
+intel/iwlwifi/iwlwifi-cc-a0*
+# Bluetooth: Intel AX201 (all Intel Bluetooth files, for now)
+intel/ibt-*
+# Sound: Sound Open Firmware for Tiger Lake (older and newer layouts), and its topologies
+intel/sof/sof-tgl*
+intel/sof-ipc4/tgl/*
+intel/sof-tplg/*
+# CPU fixes (microcode): Tiger Lake, family 6, models 0x8C and 0x8D
+intel-ucode/06-8c-*
+intel-ucode/06-8d-*
+
+# --- Shared by all laptops above ---
+# NVIDIA driver (monarch-add-nvidia, only installed when chosen)
+nvidia/*
 # Wi-Fi radio rules per country
 regulatory.db*
