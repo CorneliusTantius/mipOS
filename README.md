@@ -1,7 +1,9 @@
 # monarch
 
-A small, battery-friendly, text-only Linux for **one laptop: the Lenovo
-ThinkPad L14 Gen 5 (21L2) with an Intel Core Ultra 5 135U** (Meteor Lake).
+A small, battery-friendly Linux for **Intel laptops with optional NVIDIA
+graphics**. Its main, tested target is the Lenovo ThinkPad L14 Gen 5 (21L2)
+with an Intel Core Ultra 5 135U (Meteor Lake). It works as text only or with
+the MangoWM desktop.
 
 monarch is based on [Arch Linux](https://archlinux.org). It keeps only the
 drivers and firmware this laptop uses, tunes it for battery life, and comes as
@@ -11,7 +13,7 @@ same.
 
 | | |
 |---|---|
-| **Made for** | ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U. Other hardware can be added: [docs/HARDWARE.md](docs/HARDWARE.md) |
+| **Made for** | Intel laptops (see [Supported hardware](#supported-hardware)); tested on the ThinkPad L14 Gen 5 (21L2), Intel Core Ultra 5 135U. Other hardware can be added: [docs/HARDWARE.md](docs/HARDWARE.md) |
 | **Base** | Arch Linux (official packages, updated with `pacman`), x86_64, UEFI only |
 | **Interface** | Text only, or with the MangoWM desktop (Waybar bar, Ctrl+Space launcher, foot terminal, black-and-white look): chosen in the installer (the packages are on the USB stick, no internet needed) or added later with `sudo monarch-add-desktop` (needs internet) |
 | **Network** | Wi-Fi with `iwctl`, cable automatic, phone USB tethering; Bluetooth with `bluetoothctl` |
@@ -36,9 +38,27 @@ Earlier versions (Ubuntu-based, then Linux From Scratch) are in the git history.
 | Phone USB tethering, USB-to-Ethernet adapters | Works |
 | AI chip (NPU), fingerprint/smartcard readers | Not included |
 
-Everything else (other laptops' chips, other Wi-Fi brands, AMD/NVIDIA
-graphics...) is left out to save space and can be added back with two list
-entries and `pacman`: see [docs/HARDWARE.md](docs/HARDWARE.md).
+Everything else (other laptops' chips, other Wi-Fi brands, AMD graphics...) is
+left out to save space and can be added back with two list entries and
+`pacman`: see [docs/HARDWARE.md](docs/HARDWARE.md).
+
+## Supported hardware
+
+| Category | Status |
+|---|---|
+| **Intel laptops, Meteor Lake** (Core Ultra, e.g. ThinkPad L14 Gen 5) | Supported. Tested on the ThinkPad L14 Gen 5; the table above lists what works. |
+| **NVIDIA graphics** (optional, proprietary driver) | Available in the installer (answer yes when online), or later with `sudo monarch-add-nvidia`. Downloads about 1 GB; not on the ISO. Not yet tested on hardware. |
+| **Newer Intel laptops with NVIDIA, other Intel generations** (e.g. MSI Stealth 15M A11UEK, Tiger Lake) | Not yet. The NVIDIA option is there, but the Intel graphics, Wi-Fi and sound firmware for these chips still have to be added to the keep lists ([docs/HARDWARE.md](docs/HARDWARE.md)). |
+
+32-bit software (Steam and other 32-bit games) works: the installer turns on the
+`multilib` repository on new installs. On a system installed before that change,
+turn it on with:
+
+```bash
+sudo sed -i '/^#\[multilib\]$/,/^#Include/ s/^#//' /etc/pacman.conf
+```
+
+Then install Steam with `sudo pacman -Syu steam`.
 
 ## Quick start: install on the ThinkPad
 
