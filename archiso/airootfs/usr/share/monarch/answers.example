@@ -22,5 +22,6 @@ MODE=erase                   # erase = whole disk | free = largest free space
 ENCRYPT=no                   # yes | no
 LUKS_PASSWORD=""             # needed when ENCRYPT=yes
 DESKTOP=no                   # yes = also install the MangoWM desktop (needs internet)
+NVIDIA=no                    # yes = also install the NVIDIA driver (needs internet, about 1 GB)
 CONFIRM=no                   # must be yes to really install
 REBOOT=no                    # yes = restart when finished

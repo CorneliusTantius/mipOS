@@ -108,6 +108,18 @@ sudo pacman -S linux-firmware-realtek
 
 Then restart: `sudo reboot`.
 
+## NVIDIA graphics (proprietary driver)
+
+Laptops with an NVIDIA chip (for example the MSI Stealth 15M A11UEK, RTX 3060)
+can use NVIDIA's own driver. The installer asks about it when there's internet:
+answer yes. On an installed system, run (needs internet, about 1 GB of disk):
+
+```bash
+sudo monarch-add-nvidia
+```
+
+Then restart. The driver isn't on the ISO, so it doesn't make the ISO bigger.
+
 ## 4. Turn the trimming off completely
 
 For a laptop that isn't the ThinkPad L14 Gen 5, or while finding out what a

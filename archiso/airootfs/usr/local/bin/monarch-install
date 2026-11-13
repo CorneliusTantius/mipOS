@@ -421,7 +421,7 @@ gib() { echo $(( ($1 + 1023) / 1024 )); }   # MiB -> GiB, rounded up
 # Answers file (--config): KEY=value lines, read as text (never run)
 # ---------------------------------------------------------------------
 KEYS="NETWORK WIFI_SSID WIFI_PASSWORD LOCALE KEYMAP TIMEZONE HOSTNAME FULLNAME USERNAME
-      PASSWORD DISK MODE ENCRYPT LUKS_PASSWORD DESKTOP UPDATE CONFIRM REBOOT"
+      PASSWORD DISK MODE ENCRYPT LUKS_PASSWORD DESKTOP NVIDIA UPDATE CONFIRM REBOOT"
 
 load_answers() {
     local line key val
@@ -845,13 +845,38 @@ step_desktop() {
         no)  ;;
         *)   die "DESKTOP must be yes or no." ;;
     esac
+    step_nvidia
+}
+
+# NVIDIA graphics driver (optional). It is downloaded, so it needs internet.
+step_nvidia() {
+    if [[ ${UNATTENDED} == yes ]]; then
+        ANS[NVIDIA]=${ANS[NVIDIA]:-no}
+    elif [[ -z ${ANS[NVIDIA]:-} ]]; then
+        if [[ ${NET_OK} == yes ]]; then
+            say "Some laptops also have an NVIDIA graphics chip. Its driver is downloaded now" \
+                "and takes about 1 GB of disk space. Answer no if you're not sure."
+            blank
+            ANS[NVIDIA]="$(choose "Install the NVIDIA graphics driver?" \
+                no  "No (default)" \
+                yes "Yes: the NVIDIA driver (proprietary)")"
+        else
+            ANS[NVIDIA]=no
+        fi
+    fi
+    case "${ANS[NVIDIA]}" in
+        yes) [[ ${NET_OK} == yes ]] \
+                 || die "NVIDIA=yes needs internet (NETWORK=auto with a cable or Wi-Fi)." ;;
+        no)  ;;
+        *)   die "NVIDIA must be yes or no." ;;
+    esac
 }
 
 # ---------------------------------------------------------------------
 # 9. Summary and confirmation
 # ---------------------------------------------------------------------
 step_summary() {
-    local where net desktop text answer lines=()
+    local where net desktop nvidia text answer lines=()
     if [[ ${ANS[MODE]} == erase ]]; then
         where="ERASE EVERYTHING on ${ANS[DISK]} ($(lsblk -dno SIZE,MODEL "${ANS[DISK]}" | xargs))"
     else
@@ -859,6 +884,8 @@ step_summary() {
     fi
     desktop="no (text only)"
     [[ ${ANS[DESKTOP]} == yes ]] && desktop="MangoWM (downloaded during the install)"
+    nvidia="no"
+    [[ ${ANS[NVIDIA]} == yes ]] && nvidia="yes (downloaded during the install)"
     net="not connected (no update at the end)"
     [[ ${NET_OK} == yes ]] && net="connected (update packages at the end)"
     text="Network:        ${net}
@@ -870,6 +897,7 @@ User:           ${ANS[USERNAME]}${ANS[FULLNAME]:+ (${ANS[FULLNAME]})}, may use s
 Install to:     ${where}
 Encryption:     ${ANS[ENCRYPT]}
 Desktop:        ${desktop}
+NVIDIA driver:  ${nvidia}
 Hibernation:    swap file of $(gib "$(ram_mib)") GB (size of RAM)
 Windows found:  ${WINDOWS}"
     log "Summary:"$'\n'"${text}"
@@ -1137,6 +1165,19 @@ do_desktop() {
     rmdir "${mnt}" 2>/dev/null || true
 }
 
+do_nvidia() {
+    # Downloads the NVIDIA driver (needs internet). A failed install is not fatal:
+    # the system still starts on the Intel graphics.
+    local cmd="arch-chroot ${TARGET} /usr/local/sbin/${DISTRO_ID}-add-nvidia"
+    if interactive; then
+        script -qefc "${cmd}" -a "${LOG}" \
+            || bad "NVIDIA driver failed; after the restart run: sudo ${DISTRO_ID}-add-nvidia"
+    else
+        ${cmd} >>"${LOG}" 2>&1 \
+            || echo "WARNING: NVIDIA driver failed; run 'sudo ${DISTRO_ID}-add-nvidia' after the restart."
+    fi
+}
+
 do_initramfs() {
     local t=${TARGET} hooks=() h
     # The start-up system. Only hooks that exist in this mkinitcpio version are used.
@@ -1222,6 +1263,7 @@ install_system() {
     STEPS=10
     [[ ${NET_OK} == yes ]] && STEPS=11
     [[ ${ANS[DESKTOP]} == yes ]] && STEPS=$((STEPS + 1))
+    [[ ${ANS[NVIDIA]} == yes ]] && STEPS=$((STEPS + 1))
     step "Making partitions on ${ANS[DISK]}" do_partition
     step "Formatting$([[ ${ANS[ENCRYPT]} == yes ]] && echo " and encrypting")" do_format
     step "Creating Btrfs subvolumes and the swap file" do_mount
@@ -1244,6 +1286,13 @@ install_system() {
         say "(${STEP_NO}/${STEPS}) Installing the desktop (shows pacman's progress):"
         do_desktop
         good "(${STEP_NO}/${STEPS}) Installing the desktop"
+    fi
+    if [[ ${ANS[NVIDIA]} == yes ]]; then
+        STEP_NO=$((STEP_NO + 1))
+        log "== Installing the NVIDIA driver"
+        say "(${STEP_NO}/${STEPS}) Installing the NVIDIA driver (shows pacman's progress):"
+        do_nvidia
+        good "(${STEP_NO}/${STEPS}) Installing the NVIDIA driver"
     fi
     if [[ ${NET_OK} == yes && ${ANS[UPDATE]:-yes} == yes ]]; then
         # Not a spinner step: pacman shows its own download progress here.

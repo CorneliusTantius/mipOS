@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# =====================================================================
+#  monarch-add-nvidia: install the NVIDIA graphics driver (needs internet)
+#
+#  Usage (as root):   monarch-add-nvidia
+#
+#  Installs the proprietary NVIDIA driver (nvidia-open for the "linux" kernel,
+#  plus nvidia-utils, about 1 GB on disk), turns on NVIDIA kernel mode setting
+#  (needed by Wayland desktops such as MangoWM), and rebuilds the start-up
+#  system (initramfs). Restart afterwards.
+#  The installer runs this for you when you answer yes to the NVIDIA question.
+# =====================================================================
+set -Eeuo pipefail
+
+[[ ${EUID} -eq 0 ]] || { echo "Run as root: sudo monarch-add-nvidia"; exit 1; }
+
+echo "== Installing the NVIDIA driver (nvidia-open, nvidia-utils)"
+pacman -Syu --needed --noconfirm nvidia-open nvidia-utils
+
+echo "== Turning on NVIDIA kernel mode setting"
+cat >/etc/modprobe.d/monarch-nvidia.conf <<'EOF'
+# monarch: NVIDIA kernel mode setting (needed for Wayland desktops such as MangoWM).
+options nvidia-drm modeset=1
+EOF
+
+echo "== Rebuilding the start-up system (initramfs)"
+mkinitcpio -P
+
+echo "Done. Restart the computer to use the NVIDIA driver."
