@@ -15,7 +15,12 @@ set -Eeuo pipefail
 [[ ${EUID} -eq 0 ]] || { echo "Run as root: sudo monarch-add-nvidia"; exit 1; }
 
 echo "== Installing the NVIDIA driver (nvidia-open, nvidia-utils)"
-pacman -Syu --needed --noconfirm nvidia-open nvidia-utils
+# 32-bit libraries too (Steam and 32-bit games) when multilib is switched on.
+libs=()
+if grep -q '^\[multilib\]' /etc/pacman.conf; then
+    libs+=(lib32-nvidia-utils)
+fi
+pacman -Syu --needed --noconfirm nvidia-open nvidia-utils "${libs[@]}"
 
 echo "== Turning on NVIDIA kernel mode setting"
 cat >/etc/modprobe.d/monarch-nvidia.conf <<'EOF'

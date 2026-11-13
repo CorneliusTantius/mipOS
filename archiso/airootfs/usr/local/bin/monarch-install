@@ -1090,6 +1090,9 @@ do_settings() {
             "${t}/etc/pacman.conf" >"${t}/etc/pacman.conf.new"
         mv "${t}/etc/pacman.conf.new" "${t}/etc/pacman.conf"
     fi
+    # 32-bit packages (multilib): needed by Steam and many games. Arch ships it
+    # commented out; this turns the [multilib] section (header and Include) on.
+    sed -i '/^#\[multilib\]$/,/^#Include/ s/^#//' "${t}/etc/pacman.conf"
     # Services: network, Wi-Fi, time sync, power saving, SSD trim
     arch-chroot "${t}" systemctl enable systemd-networkd systemd-resolved iwd \
         systemd-timesyncd power-profiles-daemon monarch-power-source thermald bluetooth fstrim.timer
